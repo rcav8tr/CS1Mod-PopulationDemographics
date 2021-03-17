@@ -7,7 +7,7 @@ namespace PopulationDemographics
     /// <summary>
     /// Harmony patching
     /// </summary>
-    public class HarmonyPatcher
+    internal class HarmonyPatcher
     {
         private const string HarmonyId = "com.github.rcav8tr.PopulationDemographics";
         private static Harmony _harmony;
