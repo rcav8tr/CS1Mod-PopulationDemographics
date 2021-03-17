@@ -10,7 +10,6 @@ namespace PopulationDemographics
     public class HarmonyPatcher
     {
         private const string HarmonyId = "com.github.rcav8tr.PopulationDemographics";
-        private static Harmony _harmony;
 
         /// <summary>
         /// create Harmony patches
@@ -18,7 +17,7 @@ namespace PopulationDemographics
         public static void CreatePatches()
         {
             // initialize Harmony
-            _harmony = new Harmony(HarmonyId);
+            var _harmony = new Harmony(HarmonyId);
             if (_harmony == null)
             {
                 Debug.LogError("Unable to create Harmony instance.");
@@ -58,7 +57,7 @@ namespace PopulationDemographics
             }
 
             // create the patch
-            _harmony.Patch(originalMethod, null, new HarmonyMethod(postfixMethod));
+            new Harmony(HarmonyId).Patch(originalMethod, null, new HarmonyMethod(postfixMethod));
 
             // success
             return true;
@@ -94,6 +93,7 @@ namespace PopulationDemographics
         /// </summary>
         public static void RemovePatches()
         {
+            var _harmony = new Harmony(HarmonyId);
             if (_harmony != null)
             {
                 _harmony.UnpatchAll();
