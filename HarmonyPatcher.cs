@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using CitiesHarmony.API;
 using HarmonyLib;
 using System.Reflection;
 
@@ -7,7 +8,7 @@ namespace PopulationDemographics
     /// <summary>
     /// Harmony patching
     /// </summary>
-    public class HarmonyPatcher
+    internal class HarmonyPatcher
     {
         private const string HarmonyId = "com.github.rcav8tr.PopulationDemographics";
 
@@ -16,11 +17,11 @@ namespace PopulationDemographics
         /// </summary>
         public static void CreatePatches()
         {
-            // initialize Harmony
-            var _harmony = new Harmony(HarmonyId);
-            if (_harmony == null)
+            // check Harmony
+            if (!HarmonyHelper.IsHarmonyInstalled)
             {
-                Debug.LogError("Unable to create Harmony instance.");
+                ColossalFramework.UI.UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel").SetMessage("Missing Dependency", 
+                    "The Population Demographics mod requires the 'Harmony (Mod Dependency)' mod.  \n\nPlease subscribe to the 'Harmony (Mod Dependency)' mod and restart the game.", error: false);
                 return;
             }
 
@@ -93,11 +94,9 @@ namespace PopulationDemographics
         /// </summary>
         public static void RemovePatches()
         {
-            var _harmony = new Harmony(HarmonyId);
-            if (_harmony != null)
+            if (HarmonyHelper.IsHarmonyInstalled)
             {
-                _harmony.UnpatchAll();
-                _harmony = null;
+                new Harmony(HarmonyId).UnpatchAll();
             }
         }
     }
