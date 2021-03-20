@@ -2,6 +2,7 @@
 using CitiesHarmony.API;
 using HarmonyLib;
 using System.Reflection;
+using System;
 
 namespace PopulationDemographics
 {
@@ -15,20 +16,23 @@ namespace PopulationDemographics
         /// <summary>
         /// create Harmony patches
         /// </summary>
-        public static void CreatePatches()
+        public static bool CreatePatches()
         {
             // check Harmony
             if (!HarmonyHelper.IsHarmonyInstalled)
             {
                 ColossalFramework.UI.UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel").SetMessage("Missing Dependency", 
                     "The Population Demographics mod requires the 'Harmony (Mod Dependency)' mod.  \n\nPlease subscribe to the 'Harmony (Mod Dependency)' mod and restart the game.", error: false);
-                return;
+                return false;
             }
 
             // create the patches
-            if (!CreatePostfixPatch<PopulationInfoViewPanel>("UpdatePanel",          BindingFlags.Instance | BindingFlags.NonPublic, "PostfixPopulationInfoViewPanelUpdatePanel"       )) return;
-            if (!CreatePostfixPatch<ResidentialBuildingAI  >("SimulationStepActive", BindingFlags.Instance | BindingFlags.NonPublic, "PostfixResidentialBuildingAISimulationStepActive")) return;
-            if (!CreatePostfixPatch<District               >("SimulationStep",       BindingFlags.Instance | BindingFlags.Public,    "PostfixDistrictSimulationStep"                   )) return;
+            if (!CreatePostfixPatch<PopulationInfoViewPanel>("UpdatePanel",          BindingFlags.Instance | BindingFlags.NonPublic, "PostfixPopulationInfoViewPanelUpdatePanel"       )) return false;
+            if (!CreatePostfixPatch<ResidentialBuildingAI  >("SimulationStepActive", BindingFlags.Instance | BindingFlags.NonPublic, "PostfixResidentialBuildingAISimulationStepActive")) return false;
+            if (!CreatePostfixPatch<District               >("SimulationStep",       BindingFlags.Instance | BindingFlags.Public,    "PostfixDistrictSimulationStep"                   )) return false;
+
+            // success
+            return true;
         }
 
         /// <summary>
@@ -94,9 +98,16 @@ namespace PopulationDemographics
         /// </summary>
         public static void RemovePatches()
         {
-            if (HarmonyHelper.IsHarmonyInstalled)
+            try
             {
-                new Harmony(HarmonyId).UnpatchAll();
+                if (HarmonyHelper.IsHarmonyInstalled)
+                {
+                    new Harmony(HarmonyId).UnpatchAll(HarmonyId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
             }
         }
     }

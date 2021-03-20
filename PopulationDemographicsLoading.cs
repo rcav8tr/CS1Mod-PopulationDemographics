@@ -65,7 +65,7 @@ namespace PopulationDemographics
                     _demographics.eventClicked += Demographics_eventClicked;
 
                     // create Harmony patches
-                    HarmonyPatcher.CreatePatches();
+                    if (!HarmonyPatcher.CreatePatches()) return;
                 }
             }
             catch (Exception ex)
@@ -90,8 +90,19 @@ namespace PopulationDemographics
 
             try
             {
-                // remove Harmony patches
-                HarmonyPatcher.RemovePatches();
+                try
+                {
+                    // remove Harmony patches
+                    HarmonyPatcher.RemovePatches();
+                }
+                catch (System.IO.FileNotFoundException ex)
+                {
+                    // ignore missing Harmony, rethrow all others
+                    if (!ex.FileName.ToUpper().Contains("HARMONY"))
+                    {
+                        throw ex;
+                    }
+                }
 
                 // destroy the objects added directly to the PopulationInfoViewPanel
                 // must do this explicitly because loading a saved game from the Pause Menu
