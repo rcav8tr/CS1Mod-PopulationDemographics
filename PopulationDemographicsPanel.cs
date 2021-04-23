@@ -319,27 +319,32 @@ namespace PopulationDemographics
                     // do only buildings that have a valid index
                     if (buffer[buildingID].m_infoIndex != 0)
                     {
-                        // check if building AI derives from ResidentialBuildingAI
-                        // PloppableRICO.GrowableResidentialAI and PloppableRICO.PloppableResidentialAI derive from ResidentialBuildingAI
-                        bool isResidentialBuildingAI = false;
+                        // do only buildings with an AI
                         if (buffer[buildingID].Info != null && buffer[buildingID].Info.m_buildingAI != null)
                         {
+                            // loop over building type hierarchy
                             Type type = buffer[buildingID].Info.m_buildingAI.GetType();
                             while (type != null)
                             {
+                                // check if building AI is or derives from ResidentialBuildingAI
+                                // PloppableRICO.GrowableResidentialAI and PloppableRICO.PloppableResidentialAI derive from ResidentialBuildingAI
                                 if (type == typeof(ResidentialBuildingAI))
                                 {
-                                    isResidentialBuildingAI = true;
+                                    ResidentialSimulationStepActive(buildingID, ref buffer[buildingID], false);
                                     break;
                                 }
+
+                                // check if building AI is or derives from NursingHomeAi (mod)
+                                if (type.Name == "NursingHomeAi")
+                                {
+                                    // do same logic as for ResidentialBuildingAI
+                                    ResidentialSimulationStepActive(buildingID, ref buffer[buildingID], false);
+                                    break;
+                                }
+
+                                // continue with base type
                                 type = type.BaseType;
                             }
-                        }
-
-                        // if derives from ResidentialBuildingAI, then do logic for ResidentialBuildingAI.SimulationStepActive
-                        if (isResidentialBuildingAI)
-                        {
-                            ResidentialSimulationStepActive(buildingID, ref buffer[buildingID], false);
                         }
                     }
                 }
