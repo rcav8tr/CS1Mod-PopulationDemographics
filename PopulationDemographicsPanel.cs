@@ -729,6 +729,7 @@ namespace PopulationDemographics
                     // do the citizen units
                     int unitCounter = 0;
                     CitizenManager instance = Singleton<CitizenManager>.instance;
+                    uint maxCitizenUnits = instance.m_units.m_size;
                     uint citizenUnit = data.m_citizenUnits;
                     while (citizenUnit != 0)
                     {
@@ -752,7 +753,7 @@ namespace PopulationDemographics
                         citizenUnit = instance.m_units.m_buffer[citizenUnit].m_nextUnit;
 
                         // check for error (e.g. circular reference)
-                        if (++unitCounter > CitizenManager.MAX_UNIT_COUNT)
+                        if (++unitCounter > CitizenManager.maxCitizenUnits)
                         {
                             Debug.LogError("Invalid list detected!" + Environment.NewLine + Environment.StackTrace);
                             break;
