@@ -306,14 +306,14 @@ namespace PopulationDemographics
                 SetCheckBox(_countCheckBox, true);
 
                 // make sure manager exists
-                if (!Singleton<BuildingManager>.exists)
+                if (!BuildingManager.exists)
                 {
                     Debug.LogError($"BuildingManager not ready during panel initialization.");
                     return;
                 }
 
                 // initialize population counts, do each building
-                Building[] buffer = Singleton<BuildingManager>.instance.m_buildings.m_buffer;
+                Building[] buffer = BuildingManager.instance.m_buildings.m_buffer;
                 for (ushort buildingID = 1; buildingID < buffer.Length; buildingID++)
                 {
                     // do only buildings that have a valid index
@@ -718,7 +718,7 @@ namespace PopulationDemographics
                 }
 
                 // make sure managers exist
-                if (!Singleton<CitizenManager>.exists)
+                if (!CitizenManager.exists)
                 {
                     return;
                 }
@@ -728,7 +728,8 @@ namespace PopulationDemographics
                 {
                     // do the citizen units
                     int unitCounter = 0;
-                    CitizenManager instance = Singleton<CitizenManager>.instance;
+                    CitizenManager instance = CitizenManager.instance;
+                    uint maximumCitizenUnits = instance.m_units.m_size;
                     uint citizenUnit = data.m_citizenUnits;
                     while (citizenUnit != 0)
                     {
@@ -752,7 +753,7 @@ namespace PopulationDemographics
                         citizenUnit = instance.m_units.m_buffer[citizenUnit].m_nextUnit;
 
                         // check for error (e.g. circular reference)
-                        if (++unitCounter > CitizenManager.MAX_UNIT_COUNT)
+                        if (++unitCounter > maximumCitizenUnits)
                         {
                             Debug.LogError("Invalid list detected!" + Environment.NewLine + Environment.StackTrace);
                             break;
