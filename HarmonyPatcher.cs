@@ -21,7 +21,7 @@ namespace PopulationDemographics
             // check Harmony
             if (!HarmonyHelper.IsHarmonyInstalled)
             {
-                ColossalFramework.UI.UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel").SetMessage("Missing Dependency", 
+                ColossalFramework.UI.UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel").SetMessage("Missing Dependency",
                     "The Population Demographics mod requires the 'Harmony (Mod Dependency)' mod.  \n\nPlease subscribe to the 'Harmony (Mod Dependency)' mod and restart the game.", error: false);
                 return false;
             }
@@ -50,7 +50,7 @@ namespace PopulationDemographics
             MethodInfo originalMethod = originalClassType.GetMethod(originalMethodName, bindingFlags);
             if (originalMethod == null)
             {
-                Debug.LogError($"Unable to find method {originalClassType}.{originalMethodName}.");
+                LogUtil.LogError($"Unable to find method {originalClassType}.{originalMethodName}.");
                 return false;
             }
 
@@ -58,7 +58,7 @@ namespace PopulationDemographics
             MethodInfo postfixMethod = typeof(HarmonyPatcher).GetMethod(postfixMethodName, BindingFlags.Static | BindingFlags.Public);
             if (postfixMethod == null)
             {
-                Debug.LogError($"Unable to find method HarmonyPatcher.{postfixMethodName}.");
+                LogUtil.LogError($"Unable to find method HarmonyPatcher.{postfixMethodName}.");
                 return false;
             }
 

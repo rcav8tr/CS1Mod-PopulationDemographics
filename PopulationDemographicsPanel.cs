@@ -1,5 +1,4 @@
 ﻿using ColossalFramework.UI;
-using ColossalFramework;
 using ColossalFramework.Globalization;
 using UnityEngine;
 using System;
@@ -35,7 +34,7 @@ namespace PopulationDemographics
             {
                 get { return eduLevel0 + eduLevel1 + eduLevel2 + eduLevel3; }
             }
-                
+
             public void Reset()
             {
                 // reset each element
@@ -163,13 +162,16 @@ namespace PopulationDemographics
                 canFocus = true;
                 opacity = 1f;
                 height = 300;
-                isVisible = true;
+
+                // set initial visibility from config
+                Configuration config = ConfigurationUtil<Configuration>.Load();
+                isVisible = config.PanelVisible;
 
                 // get the PopulationInfoViewPanel panel (displayed when the user clicks on the Population info view button)
                 PopulationInfoViewPanel populationPanel = UIView.library.Get<PopulationInfoViewPanel>(typeof(PopulationInfoViewPanel).Name);
                 if (populationPanel == null)
                 {
-                    Debug.LogError("Unable to find PopulationInfoViewPanel.");
+                    LogUtil.LogError("Unable to find PopulationInfoViewPanel.");
                     return;
                 }
 
@@ -180,7 +182,7 @@ namespace PopulationDemographics
                 UILabel populationLabel = populationPanel.Find<UILabel>("Population");
                 if (populationLabel == null)
                 {
-                    Debug.LogError("Unable to find Population label on PopulationInfoViewPanel.");
+                    LogUtil.LogError("Unable to find Population label on PopulationInfoViewPanel.");
                     return;
                 }
                 _textFont = populationLabel.font;
@@ -255,7 +257,7 @@ namespace PopulationDemographics
                 UILabel title = AddUIComponent<UILabel>();
                 if (title == null)
                 {
-                    Debug.LogError($"Unable to create title label on panel [{name}].");
+                    LogUtil.LogError($"Unable to create title label on panel [{name}].");
                     return;
                 }
                 title.name = "Title";
@@ -273,7 +275,7 @@ namespace PopulationDemographics
                 UISprite panelIcon = AddUIComponent<UISprite>();
                 if (panelIcon == null)
                 {
-                    Debug.LogError($"Unable to create population icon on panel [{name}].");
+                    LogUtil.LogError($"Unable to create population icon on panel [{name}].");
                     return;
                 }
                 panelIcon.name = "PopulationIcon";
@@ -287,7 +289,7 @@ namespace PopulationDemographics
                 _closeButton = AddUIComponent<UIButton>();
                 if (_closeButton == null)
                 {
-                    Debug.LogError($"Unable to create close button on panel [{name}].");
+                    LogUtil.LogError($"Unable to create close button on panel [{name}].");
                     return;
                 }
                 _closeButton.name = "CloseButton";
@@ -303,12 +305,17 @@ namespace PopulationDemographics
                 // create count/percent panels
                 CreateCountPercentPanel(_movingIn.description.relativePosition.y, "CountOption",   "Count",   out _countPanel,   out _countCheckBox);
                 CreateCountPercentPanel(_deceased.description.relativePosition.y, "PercentOption", "Percent", out _percentPanel, out _percentCheckBox);
-                SetCheckBox(_countCheckBox, true);
+
+                // set initial count or percent from config
+                SetCheckBox(config.CountStatus ? _countCheckBox : _percentCheckBox, true);
+
+                // add event
+                eventVisibilityChanged += PopulationDemographicsPanel_eventVisibilityChanged;
 
                 // make sure manager exists
                 if (!BuildingManager.exists)
                 {
-                    Debug.LogError($"BuildingManager not ready during panel initialization.");
+                    LogUtil.LogError($"BuildingManager not ready during panel initialization.");
                     return;
                 }
 
@@ -354,7 +361,7 @@ namespace PopulationDemographics
             }
             catch (Exception ex)
             {
-                Debug.LogException(ex);
+                LogUtil.LogException(ex);
             }
         }
 
@@ -365,6 +372,15 @@ namespace PopulationDemographics
         {
             // hide this panel
             isVisible = false;
+        }
+
+        /// <summary>
+        /// handle change in visibility
+        /// </summary>
+        private void PopulationDemographicsPanel_eventVisibilityChanged(UIComponent component, bool value)
+        {
+            // save panel visible status to config
+            Configuration.SavePanelVisible(value);
         }
 
         /// <summary>
@@ -384,7 +400,7 @@ namespace PopulationDemographics
             dataRow.description = AddUIComponent<UILabel>();
             if (dataRow.description == null)
             {
-                Debug.LogError($"Unable to create description label for [{namePrefix}] on panel [{name}].");
+                LogUtil.LogError($"Unable to create description label for [{namePrefix}] on panel [{name}].");
                 return false;
             }
             dataRow.description.name = namePrefix + "Description";
@@ -405,7 +421,7 @@ namespace PopulationDemographics
             if (!CreateCountLabel(0f,  top, namePrefix + "Level2",   dataRow.eduLevel1,   out dataRow.eduLevel2)) return false;
             if (!CreateCountLabel(0f,  top, namePrefix + "Level3",   dataRow.eduLevel2,   out dataRow.eduLevel3)) return false;
             if (!CreateCountLabel(0f,  top, namePrefix + "Total",    dataRow.eduLevel3,   out dataRow.total    )) return false;
-            
+
             if (!CreateCountLabel(12f, top, namePrefix + "MovingIn", dataRow.total,       out dataRow.movingIn )) return false;
             if (!CreateCountLabel(0f,  top, namePrefix + "Deceased", dataRow.movingIn,    out dataRow.deceased )) return false;
 
@@ -427,7 +443,7 @@ namespace PopulationDemographics
             count = AddUIComponent<UILabel>();
             if (count == null)
             {
-                Debug.LogError($"Unable to create label [{labelName}] on panel [{name}].");
+                LogUtil.LogError($"Unable to create label [{labelName}] on panel [{name}].");
                 return false;
             }
             count.name = labelName;
@@ -464,7 +480,7 @@ namespace PopulationDemographics
                 UISprite line = AddUIComponent<UISprite>();
                 if (line == null)
                 {
-                    Debug.LogError($"Unable to create [{namePrefix}] line sprite [{i}] on panel [{name}].");
+                    LogUtil.LogError($"Unable to create [{namePrefix}] line sprite [{i}] on panel [{name}].");
                     return false;
                 }
                 line.name = namePrefix + "Line" + i.ToString();
@@ -507,7 +523,7 @@ namespace PopulationDemographics
             panel = AddUIComponent<UIPanel>();
             if (panel == null)
             {
-                Debug.LogError($"Unable to create panel [{namePrefix}] on panel [{name}].");
+                LogUtil.LogError($"Unable to create panel [{namePrefix}] on panel [{name}].");
                 return false;
             }
             panel.name = namePrefix + "Panel";
@@ -524,7 +540,7 @@ namespace PopulationDemographics
             checkBox = panel.AddUIComponent<UISprite>();
             if (checkBox == null)
             {
-                Debug.LogError($"Unable to create check box sprite on panel [{panel.name}].");
+                LogUtil.LogError($"Unable to create check box sprite on panel [{panel.name}].");
                 return false;
             }
             checkBox.name = namePrefix + "CheckBox";
@@ -538,7 +554,7 @@ namespace PopulationDemographics
             UILabel description = panel.AddUIComponent<UILabel>();
             if (description == null)
             {
-                Debug.LogError($"Unable to create label on panel [{panel.name}].");
+                LogUtil.LogError($"Unable to create label on panel [{panel.name}].");
                 return false;
             }
             description.name = namePrefix + "Text";
@@ -570,12 +586,15 @@ namespace PopulationDemographics
                 SetCheckBox(_countCheckBox,   (component == _countPanel));
                 SetCheckBox(_percentCheckBox, (component == _percentPanel));
 
+                // save count selection status to config
+                Configuration.SaveCountStatus(IsCheckBoxChecked(_countCheckBox));
+
                 // trigger the panel to update
                 _triggerUpdatePanel = true;
             }
             catch (Exception ex)
             {
-                Debug.LogException(ex);
+                LogUtil.LogException(ex);
             }
         }
 
@@ -632,7 +651,7 @@ namespace PopulationDemographics
             }
             catch (Exception ex)
             {
-                Debug.LogException(ex);
+                LogUtil.LogException(ex);
             }
         }
 
@@ -755,7 +774,7 @@ namespace PopulationDemographics
                         // check for error (e.g. circular reference)
                         if (++unitCounter > maximumCitizenUnits)
                         {
-                            Debug.LogError("Invalid list detected!" + Environment.NewLine + Environment.StackTrace);
+                            LogUtil.LogError("Invalid list detected!" + Environment.NewLine + Environment.StackTrace);
                             break;
                         }
                     }
@@ -763,7 +782,7 @@ namespace PopulationDemographics
             }
             catch (Exception ex)
             {
-                Debug.LogException(ex);
+                LogUtil.LogException(ex);
             }
         }
 
@@ -804,7 +823,7 @@ namespace PopulationDemographics
             }
             catch (Exception ex)
             {
-                Debug.LogException(ex);
+                LogUtil.LogException(ex);
             }
         }
 
@@ -900,6 +919,7 @@ namespace PopulationDemographics
             base.OnDestroy();
 
             // remove event handlers
+            eventVisibilityChanged -= PopulationDemographicsPanel_eventVisibilityChanged;
             if (_countPanel != null)
             {
                 _countPanel.eventClicked -= DisplayOption_eventClicked;

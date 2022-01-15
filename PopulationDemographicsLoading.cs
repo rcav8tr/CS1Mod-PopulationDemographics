@@ -31,7 +31,7 @@ namespace PopulationDemographics
                     PopulationInfoViewPanel populationPanel = UIView.library.Get<PopulationInfoViewPanel>(typeof(PopulationInfoViewPanel).Name);
                     if (populationPanel == null)
                     {
-                        Debug.LogError("Unable to find PopulationInfoViewPanel.");
+                        LogUtil.LogError("Unable to find PopulationInfoViewPanel.");
                         return;
                     }
 
@@ -39,7 +39,7 @@ namespace PopulationDemographics
                     panel = populationPanel.component.AddUIComponent<PopulationDemographicsPanel>();
                     if (panel == null)
                     {
-                        Debug.LogError("Unable to create Population Demographics panel on PopulationInfoViewPanel.");
+                        LogUtil.LogError("Unable to create Population Demographics panel on PopulationInfoViewPanel.");
                         return;
                     }
 
@@ -47,7 +47,7 @@ namespace PopulationDemographics
                     _demographics = populationPanel.component.AddUIComponent<UIButton>();
                     if (_demographics == null)
                     {
-                        Debug.LogError("Unable to create Demographics button on PopulationInfoViewPanel.");
+                        LogUtil.LogError("Unable to create Demographics button on PopulationInfoViewPanel.");
                         return;
                     }
                     _demographics.name = "Demographics";
@@ -70,7 +70,7 @@ namespace PopulationDemographics
             }
             catch (Exception ex)
             {
-                Debug.LogException(ex);
+                LogUtil.LogException(ex);
             }
         }
 
@@ -121,7 +121,7 @@ namespace PopulationDemographics
             }
             catch (Exception ex)
             {
-                Debug.LogException(ex);
+                LogUtil.LogException(ex);
             }
         }
     }
