@@ -11,6 +11,7 @@
 
         // configuration parameters
         public bool PanelVisible = true;
+        public bool AgeGroupStatus = true;
         public bool CountStatus = true;
 
         /// <summary>
@@ -20,6 +21,16 @@
         {
             Configuration config = ConfigurationUtil<Configuration>.Load();
             config.PanelVisible = visible;
+            ConfigurationUtil<Configuration>.Save();
+        }
+
+        /// <summary>
+        /// save the age group status to the global config file
+        /// </summary>
+        public static void SaveAgeGroupStatus(bool ageGroup)
+        {
+            Configuration config = ConfigurationUtil<Configuration>.Load();
+            config.AgeGroupStatus = ageGroup;
             ConfigurationUtil<Configuration>.Save();
         }
 

@@ -5,15 +5,19 @@ Show population demographics by age group and education level.
 [h1]Detailed Description[/h1]
 The demographics are displayed in a Demographics panel beside the Population Info View panel.
 
-The Demographics panel is arranged as a grid.  The main portion of the grid contains rows for age group (Children, Teens, Young Adults, Adults, and Seniors) and columns for education level (Uneducated, Educated, Well Educated, and Highly Educated).  The intersection of a row and column shows the citizens with that combination of age group and education level.  There is a Total row which shows the totals for each education level.  There is a Total column which shows the totals for each age group.  The intersection of the Total row and the Total column is the city population.  Note that due to timing, the data might differ slightly from the population reported by the game.
+There is an option for displaying demographics by Age Group (Children, Teens, Young Adults, Adults, and Seniors) or Age.
 
-There is a row and column for Moving In which shows the citizens moving into the city by age group and by education level.  There is a row and column for Deceased which shows the deceased citizens in the city by age group and by education level.
+The Demographics panel is arranged as a grid.  The main portion of the grid contains rows for age and columns for education level (Uneducated, Educated, Well Educated, and Highly Educated).  The intersection of a row and column shows the citizens with that combination of age and education level.  There is a Total row which shows the total for each education level.  There is a Total column which shows the total for each age.  The intersection of the Total row and the Total column is the city population.  Note that due to timing, the data might differ slightly from the population reported by the game.
+
+Each age group and age includes a bar that indicates the Total for that row.  The row with the highest Total has a full bar.  The other bars show the Total for each row in proportion to the row with the highest Total.  The bars provide a visual indication of the population distribution.  The bars for Age alternate between longer and shorter due to rounding when a citizen's internal game age is converted to a real age.
+
+There is a row and column for Moving In which shows the citizens moving into the city by age and by education level.  There is a row and column for Deceased which shows the deceased citizens in the city by age and by education level.
 
 To hide the Demographics panel, click the X in the upper right corner.  To show the Demographics panel again, click the Demographics button on the Population Info View panel.
 
 The demographics can be shown as Count or as Percent by choosing the corresponding option in the lower right of the Demographics panel.  When showing Percent, the main part of the grid shows the percent of the city population while the Moving In and Deceased percents are the percent of each total respectively.  Note that percents might not add up to the total percents due to rounding.
 
-The Demographics panel show/hide status and the count/percent status are saved between games.
+The Demographics panel show/hide status, the age group/age status, and the count/percent status are saved between games.
 
 [h1]Compatibility[/h1]
 This mod does not alter game save files in any way and can be safely disabled or unsubscribed at any time.

@@ -81,6 +81,7 @@ namespace PopulationDemographics
         {
             // show the panel
             panel.isVisible = true;
+            Configuration.SavePanelVisible(panel.isVisible);
         }
 
         public override void OnLevelUnloading()
@@ -109,7 +110,6 @@ namespace PopulationDemographics
                 // does not destroy the objects implicitly like returning to the Main Menu to load a saved game
                 if (_demographics != null)
                 {
-                    _demographics.eventClicked -= Demographics_eventClicked;
                     UnityEngine.Object.Destroy(_demographics);
                     _demographics = null;
                 }
