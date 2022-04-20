@@ -11,7 +11,8 @@
 
         // configuration parameters
         public bool PanelVisible = true;
-        public bool AgeGroupStatus = true;
+        public int RowSelection = (int)PopulationDemographicsPanel.RowSelection.AgeGroup;
+        public int ColumnSelection = (int)PopulationDemographicsPanel.ColumnSelection.Education;
         public bool CountStatus = true;
 
         /// <summary>
@@ -25,12 +26,22 @@
         }
 
         /// <summary>
-        /// save the age group status to the global config file
+        /// save the row selection to the global config file
         /// </summary>
-        public static void SaveAgeGroupStatus(bool ageGroup)
+        public static void SaveRowSelection(int index)
         {
             Configuration config = ConfigurationUtil<Configuration>.Load();
-            config.AgeGroupStatus = ageGroup;
+            config.RowSelection = index;
+            ConfigurationUtil<Configuration>.Save();
+        }
+
+        /// <summary>
+        /// save the column selection to the global config file
+        /// </summary>
+        public static void SaveColumnSelection(int index)
+        {
+            Configuration config = ConfigurationUtil<Configuration>.Load();
+            config.ColumnSelection = index;
             ConfigurationUtil<Configuration>.Save();
         }
 

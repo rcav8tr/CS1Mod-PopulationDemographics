@@ -1,5 +1,4 @@
-﻿using CitiesHarmony.API;
-using ICities;
+﻿using ICities;
 
 namespace PopulationDemographics
 {
@@ -7,12 +6,6 @@ namespace PopulationDemographics
     {
         // required name and description of this mod
         public string Name => "Population Demographics";
-        public string Description => "Show population demographics by age group and education level";
-
-        public void OnEnabled()
-        {
-            // check Harmony
-            HarmonyHelper.EnsureHarmonyInstalled();
-        }
+        public string Description => "Show population demographics in a cross-reference grid";
     }
 }

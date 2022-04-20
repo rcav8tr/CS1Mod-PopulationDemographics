@@ -1,23 +1,37 @@
-Show population demographics by age group and education level.
+Show population demographics in a cross-reference grid.
 
 [img=https://i.imgur.com/f2iRAPU.gif]
 
 [h1]Detailed Description[/h1]
-The demographics are displayed in a Demographics panel beside the Population Info View panel.
+The demographics are displayed in a Demographics panel beside the Population Info View panel.  To show the Demographics panel, click the Demographics button on the Population Info View panel.  To hide the Demographics panel, click the X in the upper right corner.
 
-There is an option for displaying demographics by Age Group (Children, Teens, Young Adults, Adults, and Seniors) or Age.
+On the panel, you can choose the district, row/column, and count/percent.  These are described below.
 
-The Demographics panel is arranged as a grid.  The main portion of the grid contains rows for age and columns for education level (Uneducated, Educated, Well Educated, and Highly Educated).  The intersection of a row and column shows the citizens with that combination of age and education level.  There is a Total row which shows the total for each education level.  There is a Total column which shows the total for each age.  The intersection of the Total row and the Total column is the city population.  Note that due to timing, the data might differ slightly from the population reported by the game.
+[h3]District[/h3]
+The District dropdown allows you to choose which citizens to include:
+[list]
+[*]Citizens in the Entire City (default)
+[*]Citizens that are in No District
+[*]Citizens that are in a specific district
+[/list]
+The options for No District and a specific district are available only when you have at least one district.
 
-Each age group and age includes a bar that indicates the Total for that row.  The row with the highest Total has a full bar.  The other bars show the Total for each row in proportion to the row with the highest Total.  The bars provide a visual indication of the population distribution.  The bars for Age alternate between longer and shorter due to rounding when a citizen's internal game age is converted to a real age.
+[h3]Row and Column Selections[/h3]
+The demographics are displayed in a grid on the panel.  The Row and Column selections allow you to choose which demographics to use for the rows and columns of the grid.  Any combination of row and column selection is allowed.
 
-There is a row and column for Moving In which shows the citizens moving into the city by age and by education level.  There is a row and column for Deceased which shows the deceased citizens in the city by age and by education level.
+The intersection of a row and column in the grid shows the citizens with that combination of demographics.  There is a Total row which shows the total for each column.  There is a Total column which shows the total for each row.  The intersection of the Total row and the Total column is the population of the selected district.  Note that due to timing, the data might differ slightly from the population reported by the game.
 
-To hide the Demographics panel, click the X in the upper right corner.  To show the Demographics panel again, click the Demographics button on the Population Info View panel.
+There is a row and column for Moving In which shows the citizens moving into the selected district by row/column selection.  There is a row and column for Deceased which shows the deceased citizens in the selected district by row/column selection.
 
-The demographics can be shown as Count or as Percent by choosing the corresponding option in the lower right of the Demographics panel.  When showing Percent, the main part of the grid shows the percent of the city population while the Moving In and Deceased percents are the percent of each total respectively.  Note that percents might not add up to the total percents due to rounding.
+The heading for each row includes a colored bar that indicates the Total for that row.  The row with the highest Total has a full bar.  The other bars show the Total for each row in proportion to the row with the highest Total.  The bars provide a visual indication of the distribution amongst the rows.  The bars for Age alternate between longer and shorter due to rounding when a citizen's internal game age is converted to a real age.
 
-The Demographics panel show/hide status, the age group/age status, and the count/percent status are saved between games.
+[h3]Count vs Percent[/h3]
+The Count and Percent options in the lower right of the Demographics panel allow you to choose how to display the demographics.  When displaying Percent, the main part of the grid shows the percent of the selected district population while the Moving In and Deceased percents are the percent of each total respectively.  Note that percents might not add up to the total percents due to rounding.
+
+[h1]Other Notes[/h1]
+The demographic data updates every few seconds depending on the speed of your computer.
+
+The Demographics panel show/hide status, the row/column selections, and the count/percent status are saved between games.
 
 [h1]Compatibility[/h1]
 This mod does not alter game save files in any way and can be safely disabled or unsubscribed at any time.
@@ -35,6 +49,4 @@ Available [url=https://github.com/rcav8tr/PopulationDemographics]here[/url].
 Change notes [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/2409471930]here[/url].
 
 [h1]Acknowledgments[/h1]
-This mod depends on [url=https://github.com/pardeike]Andreas Pardeike's[/url] [url=https://github.com/pardeike/Harmony]Harmony 2 Patching Library[/url] provided as a mod by [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2040656402]boformer[/url].
-
 The development of this mod relied on the [url=https://steamcommunity.com/sharedfiles/filedetails/?id=450877484]ModTools[/url] mod by [url=https://steamcommunity.com/id/bloody_penguin/myworkshopfiles/?appid=255710]BloodyPenguin[/url] to view the internal workings of Cities Skylines.

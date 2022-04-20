@@ -63,9 +63,6 @@ namespace PopulationDemographics
                     _demographics.pressedBgSprite = "ButtonMenuPressed";
                     _demographics.isVisible = true;
                     _demographics.eventClicked += Demographics_eventClicked;
-
-                    // create Harmony patches
-                    if (!HarmonyPatcher.CreatePatches()) return;
                 }
             }
             catch (Exception ex)
@@ -79,8 +76,8 @@ namespace PopulationDemographics
         /// </summary>
         private void Demographics_eventClicked(UIComponent component, UIMouseEventParameter eventParam)
         {
-            // show the panel
-            panel.isVisible = true;
+            // toggle the panel visibility
+            panel.isVisible = !panel.isVisible;
             Configuration.SavePanelVisible(panel.isVisible);
         }
 
@@ -91,20 +88,6 @@ namespace PopulationDemographics
 
             try
             {
-                try
-                {
-                    // remove Harmony patches
-                    HarmonyPatcher.RemovePatches();
-                }
-                catch (System.IO.FileNotFoundException ex)
-                {
-                    // ignore missing Harmony, rethrow all others
-                    if (!ex.FileName.ToUpper().Contains("HARMONY"))
-                    {
-                        throw ex;
-                    }
-                }
-
                 // destroy the objects added directly to the PopulationInfoViewPanel
                 // must do this explicitly because loading a saved game from the Pause Menu
                 // does not destroy the objects implicitly like returning to the Main Menu to load a saved game

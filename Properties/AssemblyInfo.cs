@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Cities Skylines Mod")]
-[assembly: AssemblyDescription("Show population details by age and education level")]
+[assembly: AssemblyDescription("Show population demographics in a cross-reference grid")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Population Demographics")]
@@ -21,7 +21,7 @@ using System.Runtime.InteropServices;
 // The AssemblyVersion has the format "{Major}.{Minor}.{Build}.{Revision}".
 // The form "{Major}.{Minor}.*" will automatically update the build and revision.
 // The form "{Major}.{Minor}.{Build}.*" will update just the revision.
-[assembly: AssemblyVersion("1.6.*")]
+[assembly: AssemblyVersion("2.0.*")]
 
 // The AssemblyFileVersion is commented out which causes the AssemblyFileVersion to be the same as the AssemblyVersion, as desired.
 //[assembly: AssemblyFileVersion("1.0.0.0")]
