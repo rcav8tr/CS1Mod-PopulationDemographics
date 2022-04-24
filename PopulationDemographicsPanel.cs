@@ -45,6 +45,7 @@ namespace PopulationDemographics
             Health,
             Location,
             Residential,
+            Student,
             Wealth,
             WellBeing
         }
@@ -67,6 +68,7 @@ namespace PopulationDemographics
             Health,
             Location,
             Residential,
+            Student,
             Wealth,
             WellBeing
         }
@@ -236,6 +238,7 @@ namespace PopulationDemographics
             public Citizen.Health       health;
             public Citizen.Location     location;
             public ItemClass.Level      residential;
+            public ItemClass.Level      student;    // None (i.e. -1) = not a student, Levels 1-3 (i.e. 0-2) = Elementary, High School, University
             public Citizen.Wealth       wealth;
             public Citizen.Wellbeing    wellbeing;
         }
@@ -738,6 +741,8 @@ namespace PopulationDemographics
                                                                                    new Color32[] { colorLocationHome,        colorLocationWork,      colorLocationVisiting,      colorLocationMoving                                                        }) },
                 { RowSelection.Residential, new SelectionAttributes("Residential", new string[]  { "Level 1",                "Level 2",              "Level 3",                  "Level 4",                    "Level 5"                                    },
                                                                                    new Color32[] { colorResidentialLevel1,   colorResidentialLevel2, colorResidentialLevel3,     colorResidentialLevel4,       colorResidentialLevel5                       }) },
+                { RowSelection.Student,     new SelectionAttributes("Student",     new string[]  { "Not a Student",          "Elementary",           "High School",              "University"                                                               },
+                                                                                   new Color32[] { colorEducationUneducated, colorEducationEducated, colorEducationWellEducated, colorEducationHighlyEducated                                               }) },
                 { RowSelection.Wealth,      new SelectionAttributes("Wealth",      new string[]  { "Low",                    "Medium",               "High"                                                                                                 },
                                                                                    new Color32[] { colorWealthLow,           colorWealthMedium,      colorWealthHigh                                                                                        }) },
                 { RowSelection.WellBeing,   new SelectionAttributes("Well Being",  new string[]  { "Very Sad",               "Sad",                  "Satisfied",                "Happy",                      "Very Happy"                                 },
@@ -777,6 +782,7 @@ namespace PopulationDemographics
                 { ColumnSelection.Health,      new SelectionAttributes("Health",      new string[] { "Very Sick",  "Sick",     "Poor",       "Healthy",   "VeryHealthy", "Excellent" }, null) },
                 { ColumnSelection.Location,    new SelectionAttributes("Location",    new string[] { "Home",       "Work",     "Visiting",   "Moving"                                }, null) },
                 { ColumnSelection.Residential, new SelectionAttributes("Residential", new string[] { "Level 1",    "Level 2",  "Level 3",    "Level 4",   "Level 5"                  }, null) },
+                { ColumnSelection.Student,     new SelectionAttributes("Student",     new string[] { "NotStudent", "Elementary","HighSchool","University"                            }, null) },
                 { ColumnSelection.Wealth,      new SelectionAttributes("Wealth",      new string[] { "Low",        "Medium",   "High"                                                }, null) },
                 { ColumnSelection.WellBeing,   new SelectionAttributes("Well Being",  new string[] { "Very Sad",   "Sad",      "Satisfied",  "Happy",     "VeryHappy"                }, null) }
             };
@@ -1336,6 +1342,7 @@ namespace PopulationDemographics
                                 citizenDemographic.health      = Citizen.GetHealthLevel(citizen.m_health);
                                 citizenDemographic.location    = citizen.CurrentLocation;
                                 citizenDemographic.residential = homeBuilding.Info.m_class.m_level;
+                                citizenDemographic.student     = citizen.GetCurrentSchoolLevel(citizenID);
                                 citizenDemographic.wealth      = citizen.WealthLevel;
                                 citizenDemographic.wellbeing   = Citizen.GetWellbeingLevel(citizen.EducationLevel, citizen.m_wellbeing);
 
@@ -1530,6 +1537,7 @@ namespace PopulationDemographics
                                     case RowSelection.Health:      row = (int)citizen.health;      break;
                                     case RowSelection.Location:    row = (int)citizen.location;    break;
                                     case RowSelection.Residential: row = (int)citizen.residential; break;
+                                    case RowSelection.Student:     row = (int)citizen.student + 1; break;   // student starts at -1 for None
                                     case RowSelection.Wealth:      row = (int)citizen.wealth;      break;
                                     case RowSelection.WellBeing:   row = (int)citizen.wellbeing;   break;
                                     default:
@@ -1549,6 +1557,7 @@ namespace PopulationDemographics
                                     case ColumnSelection.Health:      column = (int)citizen.health;      break;
                                     case ColumnSelection.Location:    column = (int)citizen.location;    break;
                                     case ColumnSelection.Residential: column = (int)citizen.residential; break;
+                                    case ColumnSelection.Student:     column = (int)citizen.student + 1; break;     // student starts at -1 for None
                                     case ColumnSelection.Wealth:      column = (int)citizen.wealth;      break;
                                     case ColumnSelection.WellBeing:   column = (int)citizen.wellbeing;   break;
                                     default:

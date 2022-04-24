@@ -1,0 +1,106 @@
+The row selections are described in detail below.
+
+The column selections are the same as the row selections except that Age is replaced with None.  None means no detail columns are displayed (i.e. only the Total, Moving In, and Deceased columns are displayed).
+
+For most selections, this mod uses the game's calculation.
+
+[h3]Age[/h3]
+The game maintains an internal age counter from 0 to 400 (not years).  Real age is computed by dividing the game's internal age counter by the game's conversion factor of 3.5.  This results in ages from 0 to 114.
+
+In the base game, citizens die starting from about age 69 for poor health to 82 for full health.  Mods (e.g. [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2027161563]Lifecycle Rebalance Revisited[/url]) can allow citizens to live longer.
+
+[h3]Age Group[/h3]
+The game computes Age Group as shown below from the game's internal age counter.  Mods (e.g. [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2027161563]Lifecycle Rebalance Revisited[/url]) can change this logic.
+
+[table]
+[tr][td][b]Age Counter[/b][/td][td][b]Age Group[/b][/td][td][b]Real Age[/b][/td][/tr]
+[tr][td]0 to 15           [/td][td]Children        [/td][td]0.0 to 4.3     [/td][/tr]
+[tr][td]15 to 44          [/td][td]Teens           [/td][td]4.3 to 12.6    [/td][/tr]
+[tr][td]45 to 89          [/td][td]Young Adults    [/td][td]12.9 to 25.4   [/td][/tr]
+[tr][td]90 to 179         [/td][td]Adults          [/td][td]25.7 to 51.1   [/td][/tr]
+[tr][td]180 to 400        [/td][td]Seniors         [/td][td]51.4 to 114.3  [/td][/tr]
+[/table]
+
+[h3]Education[/h3]
+The game computes Education level as shown below from the schooling completed.
+
+[table]
+[tr][td][b]Completed[/b][/td][td][b]Education[/b][/td][/tr]
+[tr][td]No Schooling    [/td][td]Uneducated      [/td][/tr]
+[tr][td]Elementary      [/td][td]Educated        [/td][/tr]
+[tr][td]High School     [/td][td]Well Educated   [/td][/tr]
+[tr][td]University      [/td][td]Highly Educated [/td][/tr]
+[/table]
+
+[h3]Gender[/h3]
+The game computes Gender as shown below from the somewhat random identifier number the game assigns to each citizen.
+
+[table]
+[tr][td][b]Identifier[/b][/td][td][b]Gender[/b][/td][/tr]
+[tr][td]Even             [/td][td]Male         [/td][/tr]
+[tr][td]Odd              [/td][td]Female       [/td][/tr]
+[/table]
+
+[h3]Happiness[/h3]
+The game computes Happiness level as shown below from the average of the game's internal health and well being values, which go from 0 to 100.
+
+[table]
+[tr][td][b]Average[/b][/td][td][b]Happiness[/b][/td][/tr]
+[tr][td]0 to 15       [/td][td]Bad             [/td][/tr]
+[tr][td]16 to 30      [/td][td]Poor            [/td][/tr]
+[tr][td]31 to 44      [/td][td]Good            [/td][/tr]
+[tr][td]45 to 69      [/td][td]Excellent       [/td][/tr]
+[tr][td]70 to 100     [/td][td]Superb          [/td][/tr]
+[/table]
+
+[h3]Health[/h3]
+The game computes Health level as shown below from the game's internal health value, which goes from 0 to 100.
+
+[table]
+[tr][td][b]Value[/b][/td][td][b]Health[/b][/td][/tr]
+[tr][td]0 to 10     [/td][td]Very Sick      [/td][/tr]
+[tr][td]11 to 25    [/td][td]Sick           [/td][/tr]
+[tr][td]26 to 50    [/td][td]Poor           [/td][/tr]
+[tr][td]51 to 60    [/td][td]Healthy        [/td][/tr]
+[tr][td]61 to 80    [/td][td]Very Healthy   [/td][/tr]
+[tr][td]81 to 100   [/td][td]Excellent      [/td][/tr]
+[/table]
+
+[h3]Location[/h3]
+The game maintains whether a citizen's location is Home, Work, Visiting, or Moving.
+
+[h3]Residential[/h3]
+Level (1 to 5) of the citizen's residential building.
+
+[h3]Student[/h3]
+The game computes Student level as shown below from the level of the school building the student attends.  Campus DLC buildings are level 3, so they count as University.  Note that when the Hadron Collider is active, the city will have no students because citizens simply become more educated without actually attending a school.
+
+[table]
+[tr][td][b]Building[/b][/td][td][b]Student[/b][/td][/tr]
+[tr][td]Not a Student  [/td][td]Not a Student [/td][/tr]
+[tr][td]Level 1        [/td][td]Elementary    [/td][/tr]
+[tr][td]Level 2        [/td][td]High School   [/td][/tr]
+[tr][td]Level 3/Campus [/td][td]University    [/td][/tr]
+[/table]
+
+[h3]Wealth[/h3]
+The game computes Wealth level as shown below from the level of the citizen's residential building.
+
+[table]
+[tr][td][b]Residential[/b][/td][td][b]Wealth[/b][/td][/tr]
+[tr][td]Level 1           [/td][td]Low          [/td][/tr]
+[tr][td]Level 2 or 3      [/td][td]Medium       [/td][/tr]
+[tr][td]Level 4 or 5      [/td][td]High         [/td][/tr]
+[/table]
+
+[h3]Well Being[/h3]
+The game computes Well Being level as shown below from the combination of the Education level and the game's internal well being value, which goes from 0 to 100.
+
+[table]
+[tr][td][b]Uneducated[/b][/td][td][b]Educated[/b][/td][td][b]Well Educated[/b][/td][td][b]Highly Educated[/b][/td][td][/td][td][b]Well Being[/b][/td][/tr]
+[tr][td]0 to 9   [/td][td]0 to 15  [/td][td]0 to 19  [/td][td]0 to 25  [/td][td][/td][td]Very Sad  [/td][/tr]
+[tr][td]10 to 24 [/td][td]16 to 30 [/td][td]20 to 39 [/td][td]26 to 49 [/td][td][/td][td]Sad       [/td][/tr]
+[tr][td]25 to 34 [/td][td]31 to 44 [/td][td]40 to 59 [/td][td]50 to 62 [/td][td][/td][td]Satisfied [/td][/tr]
+[tr][td]35 to 59 [/td][td]45 to 69 [/td][td]60 to 79 [/td][td]63 to 84 [/td][td][/td][td]Happy     [/td][/tr]
+[tr][td]60 to 100[/td][td]70 to 100[/td][td]80 to 100[/td][td]85 to 100[/td][td][/td][td]Very Happy[/td][/tr]
+[/table]

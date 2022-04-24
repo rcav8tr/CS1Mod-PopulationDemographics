@@ -25,6 +25,8 @@ There is a row and column for Moving In which shows the citizens moving into the
 
 The heading for each row includes a colored bar that indicates the Total for that row.  The row with the highest Total has a full bar.  The other bars show the Total for each row in proportion to the row with the highest Total.  The bars provide a visual indication of the distribution amongst the rows.  The bars for Age alternate between longer and shorter due to rounding when a citizen's internal game age is converted to a real age.
 
+See [url=https://steamcommunity.com/workshop/filedetails/discussion/2409471930/3275815186873379626//url]Row/Column Selections[/url] for more details.
+
 [h3]Count vs Percent[/h3]
 The Count and Percent options in the lower right of the Demographics panel allow you to choose how to display the demographics.  When displaying Percent, the main part of the grid shows the percent of the selected district population while the Moving In and Deceased percents are the percent of each total respectively.  Note that percents might not add up to the total percents due to rounding.
 
