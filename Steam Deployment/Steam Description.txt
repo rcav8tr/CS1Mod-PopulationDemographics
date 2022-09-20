@@ -1,6 +1,6 @@
 Show population demographics in a cross-reference grid.
 
-[img=https://i.imgur.com/f2iRAPU.gif]
+[img=https://i.imgur.com/ys8eGPj.png]
 
 [h1]Detailed Description[/h1]
 The demographics are displayed in a Demographics panel beside the Population Info View panel.  To show the Demographics panel, click the Demographics button on the Population Info View panel.  To hide the Demographics panel, click the X in the upper right corner.
@@ -41,8 +41,6 @@ This mod does not alter game save files in any way and can be safely disabled or
 This mod does not alter the game mechanics in any way.  This mod only displays information already in the game.
 
 This mod has been tested only on Windows but should work on Mac and Linux.
-
-This mod is compatible with all Down Loadable Content (DLC) packages thru Airports and all Content Creator Packs (CCP) thru Map Pack and Vehicles of the World.  This mod does not require any DLC or CCP to work properly.
 
 This mod is compatible with [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2016920607]Ploppable RICO Revisited[/url] mod, [url=https://steamcommunity.com/sharedfiles/filedetails/?id=554232266]Nursing Homes for Senior Citizens[/url] mod, and [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2654364627]More CitizenUnits[/url] mod.
 
