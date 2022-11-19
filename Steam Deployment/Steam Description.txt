@@ -1,6 +1,6 @@
 Show population demographics in a cross-reference grid.
 
-[img=https://i.imgur.com/ys8eGPj.png]
+[img=https://i.imgur.com/sgP8i4s.png]
 
 [h1]Detailed Description[/h1]
 The demographics are displayed in a Demographics panel beside the Population Info View panel.  To show the Demographics panel, click the Demographics button on the Population Info View panel.  To hide the Demographics panel, click the X in the upper right corner.
