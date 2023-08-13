@@ -32,6 +32,16 @@ The game computes Education level as shown below from the schooling completed.
 [tr][td]University      [/td][td]Highly Educated [/td][/tr]
 [/table]
 
+[h3]Employment[/h3]
+The game computes Employment status as shown below based on student status and on whether or not the citizen has a work building defined.
+
+[table]
+[tr][td][b]Student[/b][/td][td][b]Work Building[/b][/td][td][b]Employment[/b][/td][/tr]
+[tr][td]Yes           [/td][td](not applicable)    [/td][td]Student          [/td][/tr]
+[tr][td]No            [/td][td]Defined             [/td][td]Employed         [/td][/tr]
+[tr][td]No            [/td][td]Undefined           [/td][td]Jobless          [/td][/tr]
+[/table]
+
 [h3]Gender[/h3]
 The game computes Gender as shown below from the somewhat random identifier number the game assigns to each citizen.
 

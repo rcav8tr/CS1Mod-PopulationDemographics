@@ -40,6 +40,7 @@ namespace PopulationDemographics
             Age,
             AgeGroup,
             Education,
+            Employment,
             Gender,
             Happiness,
             Health,
@@ -63,6 +64,7 @@ namespace PopulationDemographics
             None,
             AgeGroup,
             Education,
+            Employment,
             Gender,
             Happiness,
             Health,
@@ -221,6 +223,14 @@ namespace PopulationDemographics
         //                  percent label
 
 
+        // employment status
+        private enum EmploymentStatus
+        {
+            Student,
+            Employed,
+            Unemployed
+        }
+
         /// <summary>
         /// the demographic data for one citizen
         /// </summary>
@@ -233,6 +243,7 @@ namespace PopulationDemographics
             public int                  age;        // real age, not game age
             public Citizen.AgeGroup     ageGroup;
             public Citizen.Education    education;
+            public EmploymentStatus     employment;
             public Citizen.Gender       gender;
             public Citizen.Happiness    happiness;
             public Citizen.Health       health;
@@ -640,6 +651,11 @@ namespace PopulationDemographics
             Color32 colorEducationWellEducated   = (Color)educationPanel.m_WellEducatedColor   * ColorMultiplierEducation;
             Color32 colorEducationHighlyEducated = (Color)educationPanel.m_HighlyEducatedColor * ColorMultiplierEducation;
 
+            // set employment colors to yellow, green, and blue
+            Color32 colorEmploymentStudent    = new Color32(160, 160,  64, 255);
+            Color32 colorEmploymentEmployed   = new Color32( 64, 192,  64, 255);
+            Color32 colorEmploymentUnemployed = new Color32( 64,  64, 192, 255);
+
             // set gender colors to blue and red
             Color32 colorGenderMale   = new Color32( 64,  64, 192, 255);
             Color32 colorGenderFemale = new Color32(192,  64,  64, 255);
@@ -731,6 +747,8 @@ namespace PopulationDemographics
                                                                                    new Color32[] { colorAgeGroupChild,       colorAgeGroupTeen,      colorAgeGroupYoung,         colorAgeGroupAdult,           colorAgeGroupSenior                          }) },
                 { RowSelection.Education,   new SelectionAttributes("Education",   new string[]  { "Uneducated",             "Educated",             "Well Educated",            "Highly Educated"                                                          },
                                                                                    new Color32[] { colorEducationUneducated, colorEducationEducated, colorEducationWellEducated, colorEducationHighlyEducated                                               }) },
+                { RowSelection.Employment,  new SelectionAttributes("Employment",  new string[]  { "Student ",               "Employed",             "Jobless"                                                                                              },
+                                                                                   new Color32[] { colorEmploymentStudent ,  colorEmploymentEmployed,colorEmploymentUnemployed                                                                              }) },
                 { RowSelection.Gender,      new SelectionAttributes("Gender",      new string[]  { "Male",                   "Female"                                                                                                                       },
                                                                                    new Color32[] { colorGenderMale,          colorGenderFemale                                                                                                              }) },
                 { RowSelection.Happiness,   new SelectionAttributes("Happiness",   new string[]  { "Bad",                    "Poor",                 "Good",                     "Excellent",                  "Superb"                                     },
@@ -777,6 +795,7 @@ namespace PopulationDemographics
                 { ColumnSelection.None,        new SelectionAttributes("None",        new string[] { /* intentionally empty array for None */                                        }, null) },
                 { ColumnSelection.AgeGroup,    new SelectionAttributes("Age Group",   new string[] { "Children",   "Teens",    "YoungAdult", "Adults",    "Seniors"                  }, null) },
                 { ColumnSelection.Education,   new SelectionAttributes("Education",   new string[] { "Uneducated", "Educated", "Well Edu",   "Highly Edu"                            }, null) },
+                { ColumnSelection.Employment,  new SelectionAttributes("Employment",  new string[] { "Student",    "Employed", "Jobless"                                             }, null) },
                 { ColumnSelection.Gender,      new SelectionAttributes("Gender",      new string[] { "Male",       "Female"                                                          }, null) },
                 { ColumnSelection.Happiness,   new SelectionAttributes("Happiness",   new string[] { "Bad",        "Poor",     "Good",       "Excellent", "Superb"                   }, null) },
                 { ColumnSelection.Health,      new SelectionAttributes("Health",      new string[] { "Very Sick",  "Sick",     "Poor",       "Healthy",   "VeryHealthy", "Excellent" }, null) },
@@ -1337,6 +1356,8 @@ namespace PopulationDemographics
                                 citizenDemographic.age         = Mathf.Clamp((int)(citizen.Age * RealAgePerGameAge), 0, MaxRealAge);
                                 citizenDemographic.ageGroup    = Citizen.GetAgeGroup(citizen.Age);
                                 citizenDemographic.education   = citizen.EducationLevel;
+                                citizenDemographic.employment  = ((citizen.m_flags & Citizen.Flags.Student) != 0 ? EmploymentStatus.Student :
+                                                                  (citizen.m_workBuilding != 0 ? EmploymentStatus.Employed : EmploymentStatus.Unemployed));
                                 citizenDemographic.gender      = Citizen.GetGender(citizenID);
                                 citizenDemographic.happiness   = Citizen.GetHappinessLevel(Citizen.GetHappiness(citizen.m_health, citizen.m_wellbeing));
                                 citizenDemographic.health      = Citizen.GetHealthLevel(citizen.m_health);
@@ -1532,6 +1553,7 @@ namespace PopulationDemographics
                                     case RowSelection.Age:         row =      citizen.age;         break;
                                     case RowSelection.AgeGroup:    row = (int)citizen.ageGroup;    break;
                                     case RowSelection.Education:   row = (int)citizen.education;   break;
+                                    case RowSelection.Employment:  row = (int)citizen.employment;  break;
                                     case RowSelection.Gender:      row = (int)citizen.gender;      break;
                                     case RowSelection.Happiness:   row = (int)citizen.happiness;   break;
                                     case RowSelection.Health:      row = (int)citizen.health;      break;
@@ -1552,6 +1574,7 @@ namespace PopulationDemographics
                                     case ColumnSelection.None:        column = 0;                        break;     // increment column 0 even though it won't be displayed
                                     case ColumnSelection.AgeGroup:    column = (int)citizen.ageGroup;    break;
                                     case ColumnSelection.Education:   column = (int)citizen.education;   break;
+                                    case ColumnSelection.Employment:  column = (int)citizen.employment;  break;
                                     case ColumnSelection.Gender:      column = (int)citizen.gender;      break;
                                     case ColumnSelection.Happiness:   column = (int)citizen.happiness;   break;
                                     case ColumnSelection.Health:      column = (int)citizen.health;      break;

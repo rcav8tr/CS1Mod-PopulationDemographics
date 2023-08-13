@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Population Demographics")]
-[assembly: AssemblyCopyright("Copyright © 2021-2022")]
+[assembly: AssemblyCopyright("Copyright © 2021-2023")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -21,7 +21,7 @@ using System.Runtime.InteropServices;
 // The AssemblyVersion has the format "{Major}.{Minor}.{Build}.{Revision}".
 // The form "{Major}.{Minor}.*" will automatically update the build and revision.
 // The form "{Major}.{Minor}.{Build}.*" will update just the revision.
-[assembly: AssemblyVersion("2.1.*")]
+[assembly: AssemblyVersion("2.2.*")]
 
 // The AssemblyFileVersion is commented out which causes the AssemblyFileVersion to be the same as the AssemblyVersion, as desired.
 //[assembly: AssemblyFileVersion("1.0.0.0")]
