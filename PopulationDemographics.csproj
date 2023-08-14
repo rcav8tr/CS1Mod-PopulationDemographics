@@ -78,6 +78,9 @@
   <ItemGroup>
     <None Include="Steam Deployment\Discussion Row Column Selections.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Steam Deployment\Activation Button.jpg" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>mkdir "%25LOCALAPPDATA%25\Colossal Order\Cities_Skylines\Addons\Mods\$(SolutionName)"
