@@ -5,7 +5,7 @@ Show population demographics in a cross-reference grid.
 [h1]Detailed Description[/h1]
 The demographics are displayed in a Demographics panel beside the Population Info View panel.  To show the Demographics panel, click the Demographics button on the Population Info View panel.  To hide the Demographics panel, click the X in the upper right corner.
 
-On the panel, you can choose the district, row/column, and count/percent.  These are described below.
+On the panel, you can choose the district, opacity, row/column, and count/percent.  These are described below.
 
 [h3]District[/h3]
 The District dropdown allows you to choose which citizens to include:
@@ -15,6 +15,9 @@ The District dropdown allows you to choose which citizens to include:
 [*]Citizens that are in a specific district
 [/list]
 The options for No District and a specific district are available only when you have at least one district.
+
+[h3]Opacity[/h3]
+The Opacity slider allows you to choose the opacity of the Demographics panel.  The opacity of the Population panel is not changed.
 
 [h3]Row and Column Selections[/h3]
 The demographics are displayed in a grid on the panel.  The Row and Column selections allow you to choose which demographics to use for the rows and columns of the grid.  Any combination of row and column selection is allowed.
@@ -33,7 +36,7 @@ The Count and Percent options in the lower right of the Demographics panel allow
 [h1]Other Notes[/h1]
 The demographic data updates every few seconds depending on the speed of your computer.
 
-The Demographics panel show/hide status, the row/column selections, and the count/percent status are saved between games.
+The Demographics panel show/hide status, opacity, row/column selections, and count/percent status are saved between games.
 
 [h1]Compatibility[/h1]
 This mod does not alter game save files in any way and can be safely disabled or unsubscribed at any time.

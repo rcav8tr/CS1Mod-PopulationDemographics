@@ -11,6 +11,7 @@
 
         // configuration parameters
         public bool PanelVisible = true;
+        public float PanelOpacity = PopulationDemographicsPanel.DefaultOpacity;
         public int RowSelection = (int)PopulationDemographicsPanel.RowSelection.AgeGroup;
         public int ColumnSelection = (int)PopulationDemographicsPanel.ColumnSelection.Education;
         public bool CountStatus = true;
@@ -22,6 +23,16 @@
         {
             Configuration config = ConfigurationUtil<Configuration>.Load();
             config.PanelVisible = visible;
+            ConfigurationUtil<Configuration>.Save();
+        }
+
+        /// <summary>
+        /// save the panel opacity to the global config file
+        /// </summary>
+        public static void SavePanelOpacity(float opacity)
+        {
+            Configuration config = ConfigurationUtil<Configuration>.Load();
+            config.PanelOpacity = opacity;
             ConfigurationUtil<Configuration>.Save();
         }
 

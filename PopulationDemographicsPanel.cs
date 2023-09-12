@@ -190,6 +190,11 @@ namespace PopulationDemographics
         private UISprite _countCheckBox;
         private UISprite _percentCheckBox;
 
+        // UI elements for opacity
+        public const float DefaultOpacity = 1f;
+        private UISlider _opacitySlider;
+        private UILabel _opacityValueLabel;
+
 
         // here is the hierarchy of UI elements:
         //
@@ -198,6 +203,7 @@ namespace PopulationDemographics
         //      title label
         //      close button
         //      district dropdown
+        //      opacity label and slider
         //      row selection label and listbox
         //      column selection label and listbox
         //      heading panel
@@ -303,11 +309,11 @@ namespace PopulationDemographics
                 name = "PopulationDemographicsPanel";
                 backgroundSprite = "MenuPanel2";
                 canFocus = true;
-                opacity = 1f;
 
-                // set initial visibility from config
+                // set initial visibility and opacity from config
                 Configuration config = ConfigurationUtil<Configuration>.Load();
                 isVisible = config.PanelVisible;
+                opacity = config.PanelOpacity;
 
                 // get the PopulationInfoViewPanel panel (displayed when the user clicks on the Population info view button)
                 PopulationInfoViewPanel populationPanel = UIView.library.Get<PopulationInfoViewPanel>(nameof(PopulationInfoViewPanel));
@@ -416,6 +422,81 @@ namespace PopulationDemographics
                 district.anchor = UIAnchorStyle.Left | UIAnchorStyle.Top | UIAnchorStyle.Right;
                 _selectedDistrictID = UIDistrictDropdown.DistrictIDEntireCity;
                 district.selectedDistrictID = _selectedDistrictID;
+
+
+                // create opacity slider from template on district panel
+                UIPanel opacityPanel = district.AttachUIComponent(UITemplateManager.GetAsGameObject("OptionsSliderTemplate")) as UIPanel;
+                if (opacityPanel == null)
+                {
+                    LogUtil.LogError($"Unable to attach opacity slider panel.");
+                    _opacitySlider = null;
+                    _opacityValueLabel = null;
+                    return;
+                }
+                opacityPanel.name = "OpacityPanel";
+                opacityPanel.autoSize = false;
+                opacityPanel.autoLayout = false;
+                const float OpacityLabelWidth = 60f;
+                const float OpacitySliderWidth = 100f;
+                const float OpacityValueLabelWidth = 40f;
+                const float OpacitySpacing = 5f;
+                opacityPanel.size = new Vector2(OpacityLabelWidth + OpacitySpacing + OpacitySliderWidth + OpacitySpacing + OpacityValueLabelWidth, TextHeight);
+                opacityPanel.relativePosition = new Vector3(district.size.x - opacityPanel.size.x, 0f);
+                opacityPanel.anchor = UIAnchorStyle.Top | UIAnchorStyle.Right;
+
+                // get the label from the template
+                UILabel sliderLabel = opacityPanel.Find<UILabel>("Label");
+                if (sliderLabel == null)
+                {
+                    LogUtil.LogError($"Unable to find opacity label.");
+                    _opacityValueLabel = null;
+                    return;
+                }
+                sliderLabel.name = "OpacityLabel";
+                sliderLabel.text = "Opacity: ";
+                sliderLabel.autoSize = false;
+                sliderLabel.size = new Vector2(OpacityLabelWidth, TextHeight);
+                sliderLabel.anchor = UIAnchorStyle.Top | UIAnchorStyle.Left;
+                sliderLabel.relativePosition = new Vector3(0f, 2f);
+                sliderLabel.textScale = TextScale;
+                sliderLabel.textColor = TextColorNormal;
+                sliderLabel.textAlignment = UIHorizontalAlignment.Right;
+
+                // get the slider
+                _opacitySlider = opacityPanel.Find<UISlider>("Slider");
+                if (_opacitySlider == null)
+                {
+                    LogUtil.LogError($"Unable to find opacity slider.");
+                    _opacityValueLabel = null;
+                    return;
+                }
+                _opacitySlider.name = "OpacitySlider";
+                _opacitySlider.autoSize = false;
+                _opacitySlider.size = new Vector2(OpacitySliderWidth, TextHeight);
+                _opacitySlider.relativePosition = new Vector3(sliderLabel.size.x + OpacitySpacing, 0f);
+                _opacitySlider.orientation = UIOrientation.Horizontal;
+                _opacitySlider.stepSize = 0.01f;
+                _opacitySlider.scrollWheelAmount = 0.01f;
+                _opacitySlider.minValue = 0.40f;
+                _opacitySlider.maxValue = 1.00f;
+                _opacitySlider.value = Mathf.Clamp(config.PanelOpacity, _opacitySlider.minValue, _opacitySlider.maxValue);
+
+                // create opacity value label
+                _opacityValueLabel = opacityPanel.AddUIComponent<UILabel>();
+                if (_opacityValueLabel == null)
+                {
+                    LogUtil.LogError($"Unable to create opacity value label.");
+                    return;
+                }
+                _opacityValueLabel.name = "OpacityValueLabel";
+                _opacityValueLabel.autoSize = false;
+                _opacityValueLabel.size = new Vector2(OpacityValueLabelWidth, TextHeight);
+                _opacityValueLabel.relativePosition = new Vector3(_opacitySlider.relativePosition.x + _opacitySlider.size.x + OpacitySpacing, 2f);
+                _opacityValueLabel.textScale = TextScale;
+                _opacityValueLabel.textColor = TextColorNormal;
+                _opacityValueLabel.textAlignment = UIHorizontalAlignment.Center;
+                ShowOpacityValue(_opacitySlider.value);
+
 
                 // create row selection label
                 if (!CreateSelectionLabel(textFont, out UILabel rowSelectionLabel)) { return; }
@@ -580,6 +661,7 @@ namespace PopulationDemographics
                 // set event handlers
                 closeButton.eventClicked += CloseClicked;
                 district.eventSelectedDistrictChanged += SelectedDistrictChanged;
+                _opacitySlider.eventValueChanged += OpacityValueChanged;
                 rowSelectionListBox   .eventSelectedIndexChanged += RowSelectedIndexChanged;
                 columnSelectionListBox.eventSelectedIndexChanged += ColumnSelectedIndexChanged;
                 _countPanel.eventClicked   += DisplayOption_eventClicked;
@@ -1187,6 +1269,30 @@ namespace PopulationDemographics
             // hide this panel
             isVisible = false;
             Configuration.SavePanelVisible(isVisible);
+        }
+
+        /// <summary>
+        /// handle opacity slider value changed
+        /// </summary>
+        private void OpacityValueChanged(UIComponent component, float value)
+        {
+            // save value to config
+            Configuration.SavePanelOpacity(value);
+
+            // update panel opacity
+            opacity = value;
+
+            // show opacity value
+            ShowOpacityValue(value);
+        }
+
+        /// <summary>
+        /// show opacity value as a percent
+        /// </summary>
+        private void ShowOpacityValue(float opacity)
+        {
+            int opacityPercent = Mathf.RoundToInt(100f * opacity);
+            _opacityValueLabel.text = opacityPercent.ToString() + "%";
         }
 
         /// <summary>
