@@ -33,7 +33,7 @@ namespace PopulationDemographics
                     string configFile = GetConfigFile();
                     if (File.Exists(configFile))
                     {
-                        // load the config file into a the instance
+                        // load the config file into the instance
                         using (StreamReader streamReader = new StreamReader(configFile))
                         {
                             // if a value from C is missing in the file, no exception is thrown, the value in C is simply not updated

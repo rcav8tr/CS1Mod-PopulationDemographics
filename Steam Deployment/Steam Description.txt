@@ -28,12 +28,18 @@ There is a row and column for Moving In which shows the citizens moving into the
 
 The heading for each row includes a colored bar that indicates the Total for that row.  The row with the highest Total has a full bar.  The other bars show the Total for each row in proportion to the row with the highest Total.  The bars provide a visual indication of the distribution amongst the rows.  The bars for Age alternate between longer and shorter due to rounding when a citizen's internal game age is converted to a real age.
 
+Buildings are colored according to the average demographic of citizens residing in the building for the selected column and district.  For example, if Education column is selected, the building will be colored according to the average Education level (0 to 3) of the citizens in the building.  When None is selected, the building color indicates number of citizens.
+
+When the cursor is over a residential building, the selected column's demographic value for that building is shown below the cursor.
+
 See [url=https://steamcommunity.com/workshop/filedetails/discussion/2409471930/3275815186873379626//url]Row/Column Selections[/url] for more details.
 
 [h3]Count vs Percent[/h3]
 The Count and Percent options in the lower right of the Demographics panel allow you to choose how to display the demographics.  When displaying Percent, the main part of the grid shows the percent of the selected district population while the Moving In and Deceased percents are the percent of each total respectively.  Note that percents might not add up to the total percents due to rounding.
 
 [h1]Other Notes[/h1]
+Child Health Center and Eldercare buildings are not included because citizens do not actually reside in the buildings, they only visit the buildings.
+
 The demographic data updates every few seconds depending on the speed of your computer.
 
 The Demographics panel show/hide status, opacity, row/column selections, and count/percent status are saved between games.
@@ -45,11 +51,15 @@ This mod does not alter the game mechanics in any way.  This mod only displays i
 
 This mod has been tested only on Windows but should work on Mac and Linux.
 
-This mod is compatible with [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2016920607]Ploppable RICO Revisited[/url] mod, [url=https://steamcommunity.com/sharedfiles/filedetails/?id=554232266]Nursing Homes for Senior Citizens[/url] mod, and [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2654364627]More CitizenUnits[/url] mod.
+This mod is compatible with [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2016920607]Ploppable RICO Revisited[/url] mod, [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2559105223]CimCare Mod[/url], and [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2654364627]More CitizenUnits[/url] mod.
+
+This mod may or may not work correctly if another mod is enabled that alters the logic to get building color when the Population info view is displayed.
 
 [h1]Source Code[/h1]
 Available [url=https://github.com/rcav8tr/PopulationDemographics]here[/url].
 Change notes [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/2409471930]here[/url].
 
 [h1]Acknowledgments[/h1]
+This mod depends on [url=https://github.com/pardeike]Andreas Pardeike's[/url] [url=https://github.com/pardeike/Harmony]Harmony 2 Patching Library[/url] provided as a mod by [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2040656402]boformer[/url].
+
 The development of this mod relied on the [url=https://steamcommunity.com/sharedfiles/filedetails/?id=450877484]ModTools[/url] mod by [url=https://steamcommunity.com/id/bloody_penguin/myworkshopfiles/?appid=255710]BloodyPenguin[/url] to view the internal workings of Cities Skylines.

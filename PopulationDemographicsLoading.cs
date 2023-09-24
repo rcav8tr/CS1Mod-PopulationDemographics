@@ -17,6 +17,9 @@ namespace PopulationDemographics
         // a button to display the panel
         private UIButton _demographics;
 
+        // a label that follows the cursor
+        public static UILabel cursorLabel;
+
         public override void OnLevelLoaded(LoadMode mode)
         {
             // do base processing
@@ -63,6 +66,31 @@ namespace PopulationDemographics
                     _demographics.pressedBgSprite = "ButtonMenuPressed";
                     _demographics.isVisible = true;
                     _demographics.eventClicked += Demographics_eventClicked;
+
+                    // create cursor label
+                    cursorLabel = (UILabel)UIView.GetAView().AddUIComponent(typeof(UILabel));
+                    if (cursorLabel == null)
+                    {
+                        LogUtil.LogError("Unable to create cursor label on main view.");
+                        return;
+                    }
+                    cursorLabel.name = "PopulationDemographicsCursorLabel";
+                    cursorLabel.text = "000.0";
+                    cursorLabel.textColor = Color.cyan;
+                    cursorLabel.outlineColor = Color.black;
+                    cursorLabel.outlineSize = 1;
+                    cursorLabel.useOutline = true;
+                    cursorLabel.textAlignment = UIHorizontalAlignment.Left;
+                    cursorLabel.textScale = 0.75f;
+                    cursorLabel.opacity = 1f;       // by not setting a background, the background is transparent and opacity is for only the text
+                    cursorLabel.canFocus = false;
+                    cursorLabel.autoSize = false;
+                    cursorLabel.size = new Vector2(50f, 15f);
+                    cursorLabel.relativePosition = new Vector3(0f, 0f);
+                    cursorLabel.isVisible = false;  // start hidden
+
+                    // create the Harmony patches
+                    if (!BuildingAIPatch.CreatePatches()) { return; }
                 }
             }
             catch (Exception ex)
@@ -88,9 +116,17 @@ namespace PopulationDemographics
 
             try
             {
+                // remove Harmony patches
+                BuildingAIPatch.RemovePatches();
+
                 // destroy the objects added directly to the PopulationInfoViewPanel
                 // must do this explicitly because loading a saved game from the Pause Menu
                 // does not destroy the objects implicitly like returning to the Main Menu to load a saved game
+                if (cursorLabel != null)
+                {
+                    UnityEngine.Object.Destroy(cursorLabel);
+                    cursorLabel = null;
+                }
                 if (_demographics != null)
                 {
                     UnityEngine.Object.Destroy(_demographics);

@@ -142,6 +142,8 @@ namespace PopulationDemographics
             SpaceAfterTotalRow +                                // space after totals
             TextHeight +                                        // moving in row
             TextHeight;                                         // deceased row
+        private const float SpaceAfterTotalsSection = 10f;  // space between totals section and legend section
+        private const float HeightOfLegend = TextHeight;    // height of legend section
         private float _panelHeightNotAge;                   // panel height when Age is not selected
         private const float PanelHeightForAge = 1000f;      // panel height when Age is selected
 
@@ -183,6 +185,8 @@ namespace PopulationDemographics
         private DataRowUI _totalRow;
         private DataRowUI _movingInRow;
         private DataRowUI _deceasedRow;
+        private UILabel _legendLowValue;
+        private UILabel _legendHighValue;
 
         // UI elements for count/percent buttons
         private UIPanel _countPanel;
@@ -227,6 +231,10 @@ namespace PopulationDemographics
         //              display option panel for percent
         //                  percent checkbox sprite
         //                  percent label
+        //          legend panel
+        //              low value label
+        //              color gradient
+        //              high value label
 
 
         // employment status
@@ -244,18 +252,18 @@ namespace PopulationDemographics
         {
             public uint                 citizenID;
             public byte                 districtID;
-            public bool                 deceasesd;
+            public bool                 deceased;
             public bool                 movingIn;
-            public int                  age;        // real age, not game age
+            public int                  age;            // real age, not game age
             public Citizen.AgeGroup     ageGroup;
             public Citizen.Education    education;
             public EmploymentStatus     employment;
             public Citizen.Gender       gender;
             public Citizen.Happiness    happiness;
             public Citizen.Health       health;
-            public Citizen.Location     location;
-            public ItemClass.Level      residential;
-            public ItemClass.Level      student;    // None (i.e. -1) = not a student, Levels 1-3 (i.e. 0-2) = Elementary, High School, University
+            public Citizen.Location     location;       // Hotel location is not used because only tourists, not citizens, are guests at hotels
+            public ItemClass.Level      residential;    // None (i.e. -1) should never happen because Levels 1-5 (i.e. 0-4) are level of citizen's home building
+            public ItemClass.Level      student;        // None (i.e. -1) = not a student, Levels 1-3 (i.e. 0-2) = Elementary, High School, University
             public Citizen.Wealth       wealth;
             public Citizen.Wellbeing    wellbeing;
         }
@@ -265,11 +273,73 @@ namespace PopulationDemographics
         /// </summary>
         private class CitizenDemographics : List<CitizenDemographic> { }
 
-        // the demographics buffers
-        // temp buffer gets populated during simulation ticks
-        // final buffer gets updated periodically from temp buffer and is used to display the demographics
+        // the citizen demographics buffers
+        // temp buffer gets populated in simulation thread
+        // final buffer gets updated periodically from temp buffer in simulation thread and is used in UI thread to display the demographics
         private CitizenDemographics _tempCitizens;
         private CitizenDemographics _finalCitizens;
+
+        /// <summary>
+        /// the demographic data for one building
+        /// </summary>
+        private class BuildingDemographic
+        {
+            public byte  districtID;
+            public int   citizenCount;
+            public bool  isValid;
+            public float avgAge;        // real age, not game age
+            public float avgEducation;
+            public int   unemployedCount;
+            public int   jobEligibleCount;
+            public float avgUnemployed; // unemployment rate
+            public float avgGender;
+            public float avgHappiness;
+            public float avgHealth;
+            public int   atHomeCount;
+            public float avgAtHome;     // Location
+            public int   residential;
+            public int   studentCount;
+            public float avgStudent;
+            public float avgWealth;
+            public float avgWellbeing;
+        }
+
+        // define a min and max for each building average
+        private int   _minCitizens;
+        private int   _maxCitizens;
+        private float _minAge;
+        private float _maxAge;
+        private float _minEducation;
+        private float _maxEducation;
+        private float _minUnemployed;
+        private float _maxUnemployed;
+        private float _minGender;
+        private float _maxGender;
+        private float _minHappiness;
+        private float _maxHappiness;
+        private float _minHealth;
+        private float _maxHealth;
+        private float _minAtHome;
+        private float _maxAtHome;
+        private int   _minResidential;
+        private int   _maxResidential;
+        private float _minStudent;
+        private float _maxStudent;
+        private float _minWealth;
+        private float _maxWealth;
+        private float _minWellBeing;
+        private float _maxWellBeing;
+
+        // the building demographic buffers, one for each possible building
+        // temp buffer gets populated in simulation thread
+        // final buffer gets updated periodically from temp buffer in simulation thread and is used by UI thread to display the demographics
+        private BuildingDemographic[] _tempBuildings;
+        private BuildingDemographic[] _finalBuildings;
+
+        // building colors
+        private static Color _neutralColor;
+        private static Color _buildingColorLow;
+        private static Color _buildingColorHigh;
 
         // for locking the thread while working with final buffer that is used by both the simulation thread and the UI thread
         private static readonly object _lockObject = new object();
@@ -279,6 +349,8 @@ namespace PopulationDemographics
         private bool _initialized = false;
         private uint _citizenCounter = 0;
         private bool _triggerUpdatePanel = false;
+        private UIPanel _populationLegend;
+        private bool _hadronColliderEnabled;
 
         /// <summary>
         /// amounts for one data row
@@ -323,6 +395,14 @@ namespace PopulationDemographics
                     return;
                 }
 
+                // get legend from Population panel
+                _populationLegend = populationPanel.Find<UIPanel>("Legend");
+                if (_populationLegend == null)
+                {
+                    LogUtil.LogError("Unable to find Legend on PopulationInfoViewPanel.");
+                    return;
+                }
+
                 // place panel to the right of PopulationInfoViewPanel
                 relativePosition = new Vector3(populationPanel.component.size.x - 1f, 0f);
 
@@ -345,6 +425,26 @@ namespace PopulationDemographics
                 {
                     return;
                 }
+
+                // get neutral color
+                if (!InfoManager.exists)
+                {
+                    LogUtil.LogError("InfoManager is not ready.");
+                    return;
+                }
+                _neutralColor = InfoManager.instance.m_properties.m_neutralColor;
+
+                // get building low and high colors
+                // high color is 50% between residential low and high density zone colors
+                // low color is 15% between neutral and the high color
+                if (!ZoneManager.exists)
+                {
+                    LogUtil.LogError("ZoneManager is not ready.");
+                    return;
+                }
+                Color[] zoneColors = ZoneManager.instance.m_properties.m_zoneColors;
+                _buildingColorHigh = Color.Lerp(zoneColors[(int)ItemClass.Zone.ResidentialLow], zoneColors[(int)ItemClass.Zone.ResidentialHigh], 0.5f);
+                _buildingColorLow = Color.Lerp(_neutralColor, _buildingColorHigh, 0.15f);
 
 
                 // for most of the UI elements added in the logic below,
@@ -425,77 +525,7 @@ namespace PopulationDemographics
 
 
                 // create opacity slider from template on district panel
-                UIPanel opacityPanel = district.AttachUIComponent(UITemplateManager.GetAsGameObject("OptionsSliderTemplate")) as UIPanel;
-                if (opacityPanel == null)
-                {
-                    LogUtil.LogError($"Unable to attach opacity slider panel.");
-                    _opacitySlider = null;
-                    _opacityValueLabel = null;
-                    return;
-                }
-                opacityPanel.name = "OpacityPanel";
-                opacityPanel.autoSize = false;
-                opacityPanel.autoLayout = false;
-                const float OpacityLabelWidth = 60f;
-                const float OpacitySliderWidth = 100f;
-                const float OpacityValueLabelWidth = 40f;
-                const float OpacitySpacing = 5f;
-                opacityPanel.size = new Vector2(OpacityLabelWidth + OpacitySpacing + OpacitySliderWidth + OpacitySpacing + OpacityValueLabelWidth, TextHeight);
-                opacityPanel.relativePosition = new Vector3(district.size.x - opacityPanel.size.x, 0f);
-                opacityPanel.anchor = UIAnchorStyle.Top | UIAnchorStyle.Right;
-
-                // get the label from the template
-                UILabel sliderLabel = opacityPanel.Find<UILabel>("Label");
-                if (sliderLabel == null)
-                {
-                    LogUtil.LogError($"Unable to find opacity label.");
-                    _opacityValueLabel = null;
-                    return;
-                }
-                sliderLabel.name = "OpacityLabel";
-                sliderLabel.text = "Opacity: ";
-                sliderLabel.autoSize = false;
-                sliderLabel.size = new Vector2(OpacityLabelWidth, TextHeight);
-                sliderLabel.anchor = UIAnchorStyle.Top | UIAnchorStyle.Left;
-                sliderLabel.relativePosition = new Vector3(0f, 2f);
-                sliderLabel.textScale = TextScale;
-                sliderLabel.textColor = TextColorNormal;
-                sliderLabel.textAlignment = UIHorizontalAlignment.Right;
-
-                // get the slider
-                _opacitySlider = opacityPanel.Find<UISlider>("Slider");
-                if (_opacitySlider == null)
-                {
-                    LogUtil.LogError($"Unable to find opacity slider.");
-                    _opacityValueLabel = null;
-                    return;
-                }
-                _opacitySlider.name = "OpacitySlider";
-                _opacitySlider.autoSize = false;
-                _opacitySlider.size = new Vector2(OpacitySliderWidth, TextHeight);
-                _opacitySlider.relativePosition = new Vector3(sliderLabel.size.x + OpacitySpacing, 0f);
-                _opacitySlider.orientation = UIOrientation.Horizontal;
-                _opacitySlider.stepSize = 0.01f;
-                _opacitySlider.scrollWheelAmount = 0.01f;
-                _opacitySlider.minValue = 0.40f;
-                _opacitySlider.maxValue = 1.00f;
-                _opacitySlider.value = Mathf.Clamp(config.PanelOpacity, _opacitySlider.minValue, _opacitySlider.maxValue);
-
-                // create opacity value label
-                _opacityValueLabel = opacityPanel.AddUIComponent<UILabel>();
-                if (_opacityValueLabel == null)
-                {
-                    LogUtil.LogError($"Unable to create opacity value label.");
-                    return;
-                }
-                _opacityValueLabel.name = "OpacityValueLabel";
-                _opacityValueLabel.autoSize = false;
-                _opacityValueLabel.size = new Vector2(OpacityValueLabelWidth, TextHeight);
-                _opacityValueLabel.relativePosition = new Vector3(_opacitySlider.relativePosition.x + _opacitySlider.size.x + OpacitySpacing, 2f);
-                _opacityValueLabel.textScale = TextScale;
-                _opacityValueLabel.textColor = TextColorNormal;
-                _opacityValueLabel.textAlignment = UIHorizontalAlignment.Center;
-                ShowOpacityValue(_opacitySlider.value);
+                if (!CreateOpacitySlider(district)) { return; }
 
 
                 // create row selection label
@@ -617,10 +647,15 @@ namespace PopulationDemographics
 
                 // create panel to hold totals
                 UIPanel totalPanel = _dataPanel.AddUIComponent<UIPanel>();
+                if (totalPanel == null)
+                {
+                    LogUtil.LogError($"Unable to create total panel.");
+                    return;
+                }
                 totalPanel.name = "TotalPanel";
                 totalPanel.autoSize = false;
                 totalPanel.size = new Vector2(_dataPanel.size.x, HeightOfTotals);
-                totalPanel.relativePosition = new Vector3(0f, _dataPanel.size.y - HeightOfTotals);
+                totalPanel.relativePosition = new Vector3(0f, _dataPanel.size.y - HeightOfTotals - SpaceAfterTotalsSection - HeightOfLegend);
                 totalPanel.anchor = UIAnchorStyle.Left | UIAnchorStyle.Bottom | UIAnchorStyle.Right;
 
                 // create lines above the totals
@@ -658,6 +693,22 @@ namespace PopulationDemographics
                 // set initial count or percent from config
                 SetCheckBox(config.CountStatus ? _countCheckBox : _percentCheckBox, true);
 
+                // create legend panel
+                if (!CreateLegendPanel(textFont)) { return; }
+
+                // initialize final demographic buffers
+                InitializeTempBuffersCounters();
+                GetCitizenDemographicData((uint)CitizenManager.instance.m_citizens.m_buffer.Length);
+                _finalCitizens = _tempCitizens;
+                _finalBuildings = _tempBuildings;
+                InitializeTempBuffersCounters();
+
+                // update panel as if new column was selected
+                ColumnSelectedIndexChanged(columnSelectionListBox, columnSelectionListBox.selectedIndex);
+
+                // initialize cursor label font
+                PopulationDemographicsLoading.cursorLabel.font = textFont;
+
                 // set event handlers
                 closeButton.eventClicked += CloseClicked;
                 district.eventSelectedDistrictChanged += SelectedDistrictChanged;
@@ -666,28 +717,7 @@ namespace PopulationDemographics
                 columnSelectionListBox.eventSelectedIndexChanged += ColumnSelectedIndexChanged;
                 _countPanel.eventClicked   += DisplayOption_eventClicked;
                 _percentPanel.eventClicked += DisplayOption_eventClicked;
-
-                // initialize citizen demographics
-                _tempCitizens = new CitizenDemographics();
-                if (CitizenManager.exists && BuildingManager.exists && DistrictManager.exists)
-                {
-                    for (uint citizenID = 0; citizenID < CitizenManager.instance.m_citizens.m_buffer.Length; citizenID++)
-                    {
-                        CitizenDemographic citizenDemographic = GetCitizenDemographicData(citizenID);
-                        if (citizenDemographic != null)
-                        {
-                            _tempCitizens.Add(citizenDemographic);
-                        }
-                    }
-                }
-
-                // copy temp to final
-                _finalCitizens = _tempCitizens;
-                _tempCitizens = new CitizenDemographics();
-                _triggerUpdatePanel = true;
-
-                // initialize citizen counter for simulation tick
-                _citizenCounter = 0;
+                eventVisibilityChanged += PanelVisibilityChanged;
 
                 // panel is now initialized and ready for simulation ticks
                 _initialized = true;
@@ -771,6 +801,7 @@ namespace PopulationDemographics
             Color32 colorHealthExcellent   = Color.Lerp(negativeHealthColor, targetHealthColor, 1.0f) * ColorMultiplierHealth;
 
             // compute location colors as shades of orange
+            // Hotel location is not used because only tourists, not citizens, are guests at hotels
             Color32 colorLocationBase = new Color32(254, 230, 177, 255);
             Color32 colorLocationHome     = (Color)colorLocationBase * 0.70f;
             Color32 colorLocationWork     = (Color)colorLocationBase * 0.65f;
@@ -783,10 +814,9 @@ namespace PopulationDemographics
                 LogUtil.LogError("ZoneManager is not ready.");
                 return false;
             }
-            Color colorNeutral = InfoManager.instance.m_properties.m_neutralColor;
             Color[] zoneColors = ZoneManager.instance.m_properties.m_zoneColors;
             Color color1 = Color.Lerp(zoneColors[(int)ItemClass.Zone.ResidentialLow], zoneColors[(int)ItemClass.Zone.ResidentialHigh], 0.5f);
-            Color color0 = Color.Lerp(colorNeutral, color1, 0.20f);
+            Color color0 = Color.Lerp(_neutralColor, color1, 0.20f);
             const float ColorMultiplierResidential = 0.8f;
             Color32 colorResidentialLevel1 = Color.Lerp(color0, color1, 0.00f) * ColorMultiplierResidential;
             Color32 colorResidentialLevel2 = Color.Lerp(color0, color1, 0.25f) * ColorMultiplierResidential;
@@ -822,6 +852,7 @@ namespace PopulationDemographics
 
             // set row selection attributes
             // the heading texts and amount bar colors must be defined in the same order as the corresponding Citizen enum
+            // Hotel location is not used because only tourists, not citizens, are guests at hotels
             _rowSelectionAttributes = new RowSelectionAttributes
             {
                 { RowSelection.Age,         new SelectionAttributes("Age",         null, null)   /* arrays for age get initialized below */                                                                                                                 },
@@ -872,6 +903,7 @@ namespace PopulationDemographics
 
             // set column attributes
             // the heading texts must be defined in the same order as the corresponding Citizen enum
+            // Hotel location is not used because only tourists, not citizens, are guests at hotels
             _columnSelectionAttributes = new ColumnSelectionAttributes
             {
                 { ColumnSelection.None,        new SelectionAttributes("None",        new string[] { /* intentionally empty array for None */                                        }, null) },
@@ -1114,7 +1146,7 @@ namespace PopulationDemographics
             }
             dataScrollablePanel.name = "DataScrollablePanel";
             dataScrollablePanel.relativePosition = new Vector3(0f, 0f);
-            dataScrollablePanel.size = new Vector2(onPanel.size.x, onPanel.size.y - HeightOfTotals);
+            dataScrollablePanel.size = new Vector2(onPanel.size.x, onPanel.size.y - HeightOfTotals - SpaceAfterTotalsSection - HeightOfLegend);
             dataScrollablePanel.anchor = UIAnchorStyle.Left | UIAnchorStyle.Top | UIAnchorStyle.Right | UIAnchorStyle.Bottom;
             dataScrollablePanel.backgroundSprite = string.Empty;
             dataScrollablePanel.clipChildren = true;      // prevents contained components from being displayed when they are scrolled out of view
@@ -1256,6 +1288,185 @@ namespace PopulationDemographics
             }
         }
 
+        /// <summary>
+        /// create legend panel
+        /// </summary>
+        private bool CreateLegendPanel(UIFont textFont)
+        {
+            // create legend panel
+            UIPanel legendPanel = _dataPanel.AddUIComponent<UIPanel>();
+            if (legendPanel == null)
+            {
+                LogUtil.LogError($"Unable to create legend panel.");
+                return false;
+            }
+            legendPanel.name = "DemographicLegendPanel";
+            legendPanel.autoSize = false;
+            legendPanel.size = new Vector2(_dataPanel.size.x, HeightOfLegend);
+            legendPanel.relativePosition = new Vector3(0f, _dataPanel.size.y - HeightOfLegend);
+            legendPanel.anchor = UIAnchorStyle.Left | UIAnchorStyle.Bottom | UIAnchorStyle.Right;
+            legendPanel.isVisible = true;
+
+            // create legend low value label
+            const float ValueWidth = 50f;
+            _legendLowValue = legendPanel.AddUIComponent<UILabel>();
+            if (_legendLowValue == null)
+            {
+                LogUtil.LogError($"Unable to create low value label on legend panel.");
+                return false;
+            }
+            _legendLowValue.name = "LowValue";
+            _legendLowValue.font = textFont;
+            _legendLowValue.text = "000.0";
+            _legendLowValue.textAlignment = UIHorizontalAlignment.Center;
+            _legendLowValue.autoSize = false;
+            _legendLowValue.size = new Vector2(ValueWidth, TextHeight);
+            _legendLowValue.relativePosition = new Vector3(0f, 2.5f);
+            _legendLowValue.textColor = TextColorNormal;
+            _legendLowValue.textScale = TextScale;
+            _legendLowValue.tooltip = "Building with lowest value has this color and value";
+
+            // create legend high value label
+            _legendHighValue = legendPanel.AddUIComponent<UILabel>();
+            if (_legendHighValue == null)
+            {
+                LogUtil.LogError($"Unable to create high value label on legend panel.");
+                return false;
+            }
+            _legendHighValue.name = "HighValue";
+            _legendHighValue.font = textFont;
+            _legendHighValue.text = "000.0";
+            _legendHighValue.textAlignment = UIHorizontalAlignment.Center;
+            _legendHighValue.autoSize = false;
+            _legendHighValue.size = new Vector2(ValueWidth, TextHeight);
+            _legendHighValue.relativePosition = new Vector3(legendPanel.size.x - ValueWidth, 2.5f);
+            _legendHighValue.textColor = TextColorNormal;
+            _legendHighValue.textScale = TextScale;
+            _legendHighValue.anchor = UIAnchorStyle.Top | UIAnchorStyle.Right;
+            _legendHighValue.tooltip = "Building with highest value has this color and value";
+
+            // create legend gradient
+            UITextureSprite legendGradient = legendPanel.AddUIComponent<UITextureSprite>();
+            if (legendGradient == null)
+            {
+                LogUtil.LogError($"Unable to create color gradient on legend panel.");
+                return false;
+            }
+            legendGradient.name = "Gradient";
+            legendGradient.autoSize = false;
+            legendGradient.size = new Vector2(legendPanel.size.x - 2 * ValueWidth, TextHeight);
+            legendGradient.relativePosition = new Vector3(ValueWidth, 0f);
+            legendGradient.anchor = UIAnchorStyle.Top | UIAnchorStyle.Left | UIAnchorStyle.Right;
+
+            // get gradient material and texture using the Residential Gradient from the Levels info view panel as a template
+            LevelsInfoViewPanel levelsPanel = UIView.library.Get<LevelsInfoViewPanel>(typeof(LevelsInfoViewPanel).Name);
+            if (levelsPanel == null)
+            {
+                LogUtil.LogError("Unable to find LevelsInfoViewPanel.");
+                return false;
+            }
+            UITextureSprite gradientTemplate = levelsPanel.Find<UITextureSprite>("ResidentialGradient");
+            if (gradientTemplate == null)
+            {
+                LogUtil.LogError("Unable to find ResidentialGradient.");
+                return false;
+            }
+            legendGradient.material = gradientTemplate.material;
+            legendGradient.texture = gradientTemplate.texture;
+
+            // set the gradient colors
+            legendGradient.renderMaterial.SetColor("_ColorA", _buildingColorLow);
+            legendGradient.renderMaterial.SetColor("_ColorB", _buildingColorHigh);
+            legendGradient.renderMaterial.SetFloat("_Step", 0.01f);
+            legendGradient.renderMaterial.SetFloat("_Scalar", 1f);
+            legendGradient.renderMaterial.SetFloat("_Offset", 0f);
+
+            // success
+            return true;
+        }
+
+        /// <summary>
+        /// create opacity slider and labels
+        /// </summary>
+        private bool CreateOpacitySlider(UIDistrictDropdown district)
+        {
+            UIPanel opacityPanel = district.AttachUIComponent(UITemplateManager.GetAsGameObject("OptionsSliderTemplate")) as UIPanel;
+            if (opacityPanel == null)
+            {
+                LogUtil.LogError($"Unable to attach opacity slider panel.");
+                _opacitySlider = null;
+                _opacityValueLabel = null;
+                return false;
+            }
+            opacityPanel.name = "OpacityPanel";
+            opacityPanel.autoSize = false;
+            opacityPanel.autoLayout = false;
+            const float OpacityLabelWidth = 60f;
+            const float OpacitySliderWidth = 100f;
+            const float OpacityValueLabelWidth = 40f;
+            const float OpacitySpacing = 5f;
+            opacityPanel.size = new Vector2(OpacityLabelWidth + OpacitySpacing + OpacitySliderWidth + OpacitySpacing + OpacityValueLabelWidth, TextHeight);
+            opacityPanel.relativePosition = new Vector3(district.size.x - opacityPanel.size.x, 0f);
+            opacityPanel.anchor = UIAnchorStyle.Top | UIAnchorStyle.Right;
+
+            // get the label from the template
+            UILabel sliderLabel = opacityPanel.Find<UILabel>("Label");
+            if (sliderLabel == null)
+            {
+                LogUtil.LogError($"Unable to find opacity label.");
+                _opacityValueLabel = null;
+                return false;
+            }
+            sliderLabel.name = "OpacityLabel";
+            sliderLabel.text = "Opacity: ";
+            sliderLabel.autoSize = false;
+            sliderLabel.size = new Vector2(OpacityLabelWidth, TextHeight);
+            sliderLabel.anchor = UIAnchorStyle.Top | UIAnchorStyle.Left;
+            sliderLabel.relativePosition = new Vector3(0f, 2f);
+            sliderLabel.textScale = TextScale;
+            sliderLabel.textColor = TextColorNormal;
+            sliderLabel.textAlignment = UIHorizontalAlignment.Right;
+
+            // get the slider
+            _opacitySlider = opacityPanel.Find<UISlider>("Slider");
+            if (_opacitySlider == null)
+            {
+                LogUtil.LogError($"Unable to find opacity slider.");
+                _opacityValueLabel = null;
+                return false;
+            }
+            _opacitySlider.name = "OpacitySlider";
+            _opacitySlider.autoSize = false;
+            _opacitySlider.size = new Vector2(OpacitySliderWidth, TextHeight);
+            _opacitySlider.relativePosition = new Vector3(sliderLabel.size.x + OpacitySpacing, 0f);
+            _opacitySlider.orientation = UIOrientation.Horizontal;
+            _opacitySlider.stepSize = 0.01f;
+            _opacitySlider.scrollWheelAmount = 0.01f;
+            _opacitySlider.minValue = 0.40f;
+            _opacitySlider.maxValue = 1.00f;
+            Configuration config = ConfigurationUtil<Configuration>.Load();
+            _opacitySlider.value = Mathf.Clamp(config.PanelOpacity, _opacitySlider.minValue, _opacitySlider.maxValue);
+
+            // create opacity value label
+            _opacityValueLabel = opacityPanel.AddUIComponent<UILabel>();
+            if (_opacityValueLabel == null)
+            {
+                LogUtil.LogError($"Unable to create opacity value label.");
+                return false;
+            }
+            _opacityValueLabel.name = "OpacityValueLabel";
+            _opacityValueLabel.autoSize = false;
+            _opacityValueLabel.size = new Vector2(OpacityValueLabelWidth, TextHeight);
+            _opacityValueLabel.relativePosition = new Vector3(_opacitySlider.relativePosition.x + _opacitySlider.size.x + OpacitySpacing, 2f);
+            _opacityValueLabel.textScale = TextScale;
+            _opacityValueLabel.textColor = TextColorNormal;
+            _opacityValueLabel.textAlignment = UIHorizontalAlignment.Center;
+            ShowOpacityValue(_opacitySlider.value);
+
+            // success
+            return true;
+        }
+
         #endregion
 
 
@@ -1269,6 +1480,28 @@ namespace PopulationDemographics
             // hide this panel
             isVisible = false;
             Configuration.SavePanelVisible(isVisible);
+        }
+
+        /// <summary>
+        /// handle panel visibility changed
+        /// </summary>
+        private void PanelVisibilityChanged(UIComponent component, bool value)
+        {
+            // population Legend visibility is opposite this panel's visibility
+            _populationLegend.isVisible = !value;
+
+            // check panel visibility
+            if (value)
+            {
+                // trigger panel to update
+                // this will eventually update all buildings
+                _triggerUpdatePanel = true;
+            }
+            else
+            {
+                // update all buildings now
+                BuildingManager.instance.UpdateBuildingColors();
+            }
         }
 
         /// <summary>
@@ -1353,6 +1586,45 @@ namespace PopulationDemographics
         #region Simulation Tick
 
         /// <summary>
+        /// initialize temp buffers and counters for citizens and buildings
+        /// </summary>
+        private void InitializeTempBuffersCounters()
+        {
+            // initialize citizens
+            _citizenCounter = 0;
+            _tempCitizens = new CitizenDemographics();
+
+            // initialize buildings and Hadron Collider status
+            Building[] buildings = BuildingManager.instance.m_buildings.m_buffer;
+            _tempBuildings = new BuildingDemographic[buildings.Length];
+            _hadronColliderEnabled = false;
+            for (int i = 0; i < _tempBuildings.Length; i++)
+            {
+                // create new building demographic
+                _tempBuildings[i] = new BuildingDemographic();
+
+                // initialize district
+                Building building = buildings[i];
+                _tempBuildings[i].districtID = DistrictManager.instance.GetDistrict(building.m_position);
+
+                // get Hadron Collider status if not already enabled
+                // there are two monuments in Africa in Miniature CCP that have HadronColliderAI, so need to check service
+                BuildingInfo buildingInfo = building.Info;
+                if (!_hadronColliderEnabled &&
+                    buildingInfo != null &&
+                    buildingInfo.m_buildingAI != null &&
+                    buildingInfo.m_buildingAI.GetType() == typeof(HadronColliderAI) &&
+                    ((building.m_flags & Building.Flags.Completed) != 0) &&
+                    buildingInfo.m_class.m_service == ItemClass.Service.Education)
+                {
+                    // found Hadron Collider, save enabled status (mods allow more than one Hadron Collider)
+                    // building is enabled when production rate is not 0, per logic adapted from PlayerBuildingAI.SimulationStepActive
+                    _hadronColliderEnabled |= (building.m_productionRate != 0);
+                }
+            }
+        }
+
+        /// <summary>
         /// do processing for a simulation tick
         /// </summary>
         public void SimulationTick()
@@ -1375,34 +1647,62 @@ namespace PopulationDemographics
 
                 // do a group of 8192 (i.e. 8K) citizens per tick
                 // with the default buffer size of 1M, a full update of all citizens will be processed every 128 ticks
-                // the table below shows the ticks/day and days per full updates at the 3 different simulation speeds of the base game
-                // some mods increase the simulation speed, which reduces the ticks/day, which increases the days per full update
+                // the table below shows that it will take 2.2 seconds for each update at the 3 different simulation speeds of the base game
+                // some mods increase the simulation speed, which reduces the ticks/game day, which increases the days per full update
                 // the game speed and city population do not change the number of ticks per real time
-                // sim speed 1 = 585 ticks/day = 0.22 days/update
-                // sim speed 2 = 293 ticks/day = 0.44 days/update
-                // sim speed 3 = 145 ticks/day = 0.88 days/update
+                // sim speed 1: 128 ticks / 585 ticks/game day = 0.22 game days/update * 10  sec/game day = 2.2 sec/update
+                // sim speed 2: 128 ticks / 293 ticks/game day = 0.44 game days/update * 5   sec/game day = 2.2 sec/update
+                // sim speed 3: 128 ticks / 145 ticks/game day = 0.88 game days/update * 2.5 sec/game day = 2.2 sec/update
                 uint bufferSize = (uint)CitizenManager.instance.m_citizens.m_buffer.Length;
                 uint lastCitizen = Math.Min(_citizenCounter + 8192, bufferSize);
-                for (; _citizenCounter < lastCitizen; _citizenCounter++)
-                {
-                    // get the demographic data for the citizen in the temp buffer
-                    CitizenDemographic citizenDemographic = GetCitizenDemographicData(_citizenCounter);
-                    if (citizenDemographic != null)
-                    {
-                        _tempCitizens.Add(citizenDemographic);
-                    }
-                }
+                GetCitizenDemographicData(lastCitizen);
 
                 // check for completed all groups
                 if (_citizenCounter >= bufferSize)
                 {
+                    // compute demographics for each building
+                    foreach (BuildingDemographic buildingDemographic in _tempBuildings)
+                    {
+                        // check for at least 1 citizen (prevents divide by zero)
+                        if (buildingDemographic.citizenCount > 0)
+                        {
+                            // compute normal averages
+                            buildingDemographic.avgAge          /= buildingDemographic.citizenCount;
+                            buildingDemographic.avgEducation    /= buildingDemographic.citizenCount;
+                            buildingDemographic.avgGender       /= buildingDemographic.citizenCount;
+                            buildingDemographic.avgHappiness    /= buildingDemographic.citizenCount;
+                            buildingDemographic.avgHealth       /= buildingDemographic.citizenCount;
+                            buildingDemographic.avgWealth       /= buildingDemographic.citizenCount;
+                            buildingDemographic.avgWellbeing    /= buildingDemographic.citizenCount;
+
+                            // no need to compute average for Residential
+                            // Residential already contains the building's level
+
+                            // special average calculation for at home
+                            buildingDemographic.avgAtHome = 100f * buildingDemographic.atHomeCount / buildingDemographic.citizenCount;
+
+                            // calculate average for unemployed only if building has jobs eligible (prevents divide by zero)
+                            if (buildingDemographic.jobEligibleCount > 0)
+                            {
+                                buildingDemographic.avgUnemployed = 100f * buildingDemographic.unemployedCount / buildingDemographic.jobEligibleCount;
+                            }
+
+                            // calculate average for student only if building has students (prevents divide by zero)
+                            if (buildingDemographic.studentCount > 0)
+                            {
+                                buildingDemographic.avgStudent /= buildingDemographic.studentCount;
+                            }
+                        }
+                    }
+
                     try
                     {
-                        // lock thread while working with final buffer
+                        // lock thread while working with final buffers
                         LockThread();
 
                         // copy temp to final (final is used by the UI)
                         _finalCitizens = _tempCitizens;
+                        _finalBuildings = _tempBuildings;
                     }
                     catch (Exception ex)
                     {
@@ -1417,9 +1717,8 @@ namespace PopulationDemographics
                     // update panel with this new data
                     _triggerUpdatePanel = true;
 
-                    // start over on next simulation tick
-                    _tempCitizens = new CitizenDemographics();
-                    _citizenCounter = 0;
+                    // initialize buffers and counters to start over on next simulation tick
+                    InitializeTempBuffersCounters();
                 }
             }
             catch (Exception ex)
@@ -1429,63 +1728,113 @@ namespace PopulationDemographics
         }
 
         /// <summary>
-        /// get the demographic data for the specified citizen
-        /// return null for citizen that should not be included
+        /// get the demographic data for a range of citizens
         /// </summary>
-        private CitizenDemographic GetCitizenDemographicData(uint citizenID)
+        private void GetCitizenDemographicData(uint lastCitizenID)
         {
-            // citizen must be created and must not be a tourist
-            Citizen citizen = CitizenManager.instance.m_citizens.m_buffer[citizenID];
-            if ((citizen.m_flags & Citizen.Flags.Created) != 0 && (citizen.m_flags & Citizen.Flags.Tourist) == 0)
+            // get citizen and building buffers
+            Citizen[] citizens = CitizenManager.instance.m_citizens.m_buffer;
+            Building[] buildings = BuildingManager.instance.m_buildings.m_buffer;
+
+            // do citizens from current counter to last citizen ID
+            for (; _citizenCounter < lastCitizenID; _citizenCounter++)
             {
-                // citizen must have a home building
-                if (citizen.m_homeBuilding != 0)
+                // citizen must be created and must not be a tourist
+                Citizen citizen = citizens[_citizenCounter];
+                if ((citizen.m_flags & Citizen.Flags.Created) != 0 && (citizen.m_flags & Citizen.Flags.Tourist) == 0)
                 {
-                    // home building must have an AI
-                    Building homeBuilding = BuildingManager.instance.m_buildings.m_buffer[citizen.m_homeBuilding];
-                    if (homeBuilding.Info != null && homeBuilding.Info.m_buildingAI != null)
+                    // citizen must have a home building
+                    if (citizen.m_homeBuilding != 0)
                     {
-                        // loop over type hierarchy of home building
-                        Type homeBuildingAIType = homeBuilding.Info.m_buildingAI.GetType();
-                        while (homeBuildingAIType != null)
+                        // home building must have an AI
+                        Building homeBuilding = buildings[citizen.m_homeBuilding];
+                        if (homeBuilding.Info != null && homeBuilding.Info.m_buildingAI != null)
                         {
-                            // building AI must be or derive from ResidentialBuildingAI   OR   building AI must be or derive from NursingHomeAi (mod)
-                            // PloppableRICO.GrowableResidentialAI and PloppableRICO.PloppableResidentialAI derive from ResidentialBuildingAI
-                            if (homeBuildingAIType == typeof(ResidentialBuildingAI) || homeBuildingAIType.Name == "NursingHomeAi")
+                            // home building AI must be or derive from ResidentialBuildingAI   OR   home building AI must be OrphanageAI or NursingHomeAI from CimCare mod
+                            // PloppableRICO.PloppableResidentialAI derives from PloppableRICO.GrowableResidentialAI which derives from ResidentialBuildingAI
+                            Type homeBuildingAIType = homeBuilding.Info.m_buildingAI.GetType();
+                            if (homeBuildingAIType == typeof(ResidentialBuildingAI) ||
+                                homeBuildingAIType.IsSubclassOf(typeof(ResidentialBuildingAI)) ||
+                                homeBuildingAIType.FullName.StartsWith("CimCareMod.AI.OrphanageAI") ||
+                                homeBuildingAIType.FullName.StartsWith("CimCareMod.AI.NursingHomeAI"))
                             {
                                 // set citizen demographic data
                                 CitizenDemographic citizenDemographic = new CitizenDemographic();
-                                citizenDemographic.citizenID   = citizenID;
+                                citizenDemographic.citizenID   = _citizenCounter;
                                 citizenDemographic.districtID  = DistrictManager.instance.GetDistrict(homeBuilding.m_position);
-                                citizenDemographic.deceasesd   = ((citizen.m_flags & Citizen.Flags.Dead) != 0);
+                                citizenDemographic.deceased    = ((citizen.m_flags & Citizen.Flags.Dead) != 0);
                                 citizenDemographic.movingIn    = ((citizen.m_flags & Citizen.Flags.MovingIn) != 0);
-                                citizenDemographic.age         = Mathf.Clamp((int)(citizen.Age * RealAgePerGameAge), 0, MaxRealAge);
+                                citizenDemographic.age         = Mathf.Clamp(Mathf.RoundToInt(citizen.Age * RealAgePerGameAge), 0, MaxRealAge);
                                 citizenDemographic.ageGroup    = Citizen.GetAgeGroup(citizen.Age);
                                 citizenDemographic.education   = citizen.EducationLevel;
                                 citizenDemographic.employment  = ((citizen.m_flags & Citizen.Flags.Student) != 0 ? EmploymentStatus.Student :
                                                                   (citizen.m_workBuilding != 0 ? EmploymentStatus.Employed : EmploymentStatus.Unemployed));
-                                citizenDemographic.gender      = Citizen.GetGender(citizenID);
+                                citizenDemographic.gender      = Citizen.GetGender(_citizenCounter);
                                 citizenDemographic.happiness   = Citizen.GetHappinessLevel(Citizen.GetHappiness(citizen.m_health, citizen.m_wellbeing));
                                 citizenDemographic.health      = Citizen.GetHealthLevel(citizen.m_health);
                                 citizenDemographic.location    = citizen.CurrentLocation;
                                 citizenDemographic.residential = homeBuilding.Info.m_class.m_level;
-                                citizenDemographic.student     = citizen.GetCurrentSchoolLevel(citizenID);
+                                citizenDemographic.student     = citizen.GetCurrentSchoolLevel(_citizenCounter);
                                 citizenDemographic.wealth      = citizen.WealthLevel;
                                 citizenDemographic.wellbeing   = Citizen.GetWellbeingLevel(citizen.EducationLevel, citizen.m_wellbeing);
 
-                                // return citizen demographic data
-                                return citizenDemographic;
-                            }
+                                // save citizen demographic data
+                                _tempCitizens.Add(citizenDemographic);
 
-                            // continue with base building AI type
-                            homeBuildingAIType = homeBuildingAIType.BaseType;
+                                // building demographic is valid, even if no citizens are counted below
+                                BuildingDemographic buildingDemographic = _tempBuildings[citizen.m_homeBuilding];
+                                buildingDemographic.isValid = true;
+
+                                // citizen must be not dead and not moving in to be included in building demographic
+                                if (!citizenDemographic.deceased && !citizenDemographic.movingIn)
+                                {
+                                    // accumulate citizen demographic totals for this building
+                                    buildingDemographic.citizenCount++;
+                                    buildingDemographic.avgAge          += citizenDemographic.age;
+                                    buildingDemographic.avgEducation    += (int)citizenDemographic.education;
+                                    buildingDemographic.avgGender       += (int)citizenDemographic.gender;
+                                    buildingDemographic.avgHappiness    += (int)citizenDemographic.happiness;
+                                    buildingDemographic.avgHealth       += (int)citizenDemographic.health;
+                                    buildingDemographic.avgWealth       += (int)citizenDemographic.wealth;
+                                    buildingDemographic.avgWellbeing    += (int)citizenDemographic.wellbeing;
+
+                                    // for Residential, don't accumulate a total, just save the building's level
+                                    // add one to make it look like level is 1-5 instead of 0-4
+                                    buildingDemographic.residential = ((int)citizenDemographic.residential) + 1;
+
+                                    // count eligible to work
+                                    // if Hadron Collider is built, then include teens
+                                    if (citizenDemographic.ageGroup == Citizen.AgeGroup.Young ||
+                                        citizenDemographic.ageGroup == Citizen.AgeGroup.Adult ||
+                                        (_hadronColliderEnabled && citizenDemographic.ageGroup == Citizen.AgeGroup.Teen))
+                                    {
+                                        buildingDemographic.jobEligibleCount++;
+
+                                        // count unemployed only if eligible to work
+                                        if (citizenDemographic.employment == EmploymentStatus.Unemployed)
+                                        {
+                                            buildingDemographic.unemployedCount++;
+                                        }
+                                    }
+
+                                    // count at home
+                                    if (citizenDemographic.location == Citizen.Location.Home)
+                                    {
+                                        buildingDemographic.atHomeCount++;
+                                    }
+
+                                    // accumulate student demographics
+                                    if (citizenDemographic.student != ItemClass.Level.None)
+                                    {
+                                        buildingDemographic.studentCount++;
+                                        buildingDemographic.avgStudent += (float)citizenDemographic.student;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
-
-            // citizen should not be included
-            return null;
         }
 
         /// <summary>
@@ -1511,7 +1860,7 @@ namespace PopulationDemographics
         #region Update UI
 
         /// <summary>
-        /// Update is called every frame
+        /// Update is called every frame, even when panel is not visible
         /// </summary>
         public override void Update()
         {
@@ -1520,14 +1869,117 @@ namespace PopulationDemographics
 
             try
             {
-                // only update the panel when it is triggered for update
+                // no need to update panel when it is not visible
+                UILabel cursorLabel = PopulationDemographicsLoading.cursorLabel;
+                if (!isVisible)
+                {
+                    cursorLabel.isVisible = false;
+                    return;
+                }
+
+                // get row and column selections from config
+                Configuration config = ConfigurationUtil<Configuration>.Load();
+                RowSelection    rowSelection    = (RowSelection   )config.RowSelection;
+                ColumnSelection columnSelection = (ColumnSelection)config.ColumnSelection;
+
+                // the logic below to determine which building the cursor is over is adapted from a combination of:
+                // ToolController.IsInsideUI
+                // DefaultTool.OnToolLateUpdate
+                // DefaultTool.SimulationStep
+                // ToolBase.RayCast
+
+                // check if cursor is inside UI
+            	Vector3 mousePosition = Input.mousePosition;
+                bool cursorIsInsideUI = mousePosition.x < 0f || mousePosition.x > Screen.width || mousePosition.y < 0f || mousePosition.y > Screen.height || UIView.IsInsideUI();
+
+                // cursor must be not inside UI and must be visible
+                bool cursorLabelVisible = false;
+                if (!cursorIsInsideUI && Cursor.visible)
+                {
+                    // get input ray cast
+                    Ray mouseRay = Camera.main.ScreenPointToRay(mousePosition);
+                    float mouseRayLength = Camera.main.farClipPlane;
+                	ToolBase.RaycastInput input = new ToolBase.RaycastInput(mouseRay, mouseRayLength);
+
+                    // get building ID that cursor is over, if any
+	                Vector3 origin = input.m_ray.origin;
+	                Vector3 normalized = input.m_ray.direction.normalized;
+	                Vector3 vector = input.m_ray.origin + normalized * input.m_length;
+                    ColossalFramework.Math.Segment3 ray = new ColossalFramework.Math.Segment3(origin, vector);
+                    if (BuildingManager.instance.RayCast(ray, ItemClass.Service.None, ItemClass.SubService.None, ItemClass.Layer.None, Building.Flags.None, out _, out ushort buildingID))
+                    {
+                        // make sure building ID is valid (not sure if it will ever be invalid)
+                        if (buildingID != 0)
+                        {
+                            // if over untouchable building (not sure what that is), get parent building instead
+		                    if (buildingID != 0 && (BuildingManager.instance.m_buildings.m_buffer[buildingID].m_flags & Building.Flags.Untouchable) != 0)
+		                    {
+			                    buildingID = Building.FindParentBuilding(buildingID);
+		                    }
+
+                            // cursor is over a building
+                            try
+                            {
+                                // lock thread while working with final buffer
+                                LockThread();
+
+                                // check if this building's demographics are valid
+                                BuildingDemographic buildingDemographic = _finalBuildings[buildingID];
+                                if (buildingDemographic.isValid)
+                                {
+                                    // position cursor label below cursor
+                                    UIView uIView = cursorLabel.GetUIView();
+                                    Vector3 mousePosOnScreen = mousePosition / uIView.inputScale;
+                                    Vector3 mousePosOnGUI = uIView.ScreenPointToGUI(mousePosOnScreen);
+                                    cursorLabel.relativePosition = new Vector3(mousePosOnGUI.x, mousePosOnGUI.y + 18f);
+                                    cursorLabel.isVisible = true;
+
+                                    // get the building's demographic value for the selected column
+                                    float value = 0f;
+                                    switch (columnSelection)
+                                    {
+                                        case ColumnSelection.None:        value = buildingDemographic.citizenCount;  break;
+                                        case ColumnSelection.AgeGroup:    value = buildingDemographic.avgAge;        break;
+                                        case ColumnSelection.Education:   value = buildingDemographic.avgEducation;  break;
+                                        case ColumnSelection.Employment:  value = buildingDemographic.avgUnemployed; break;
+                                        case ColumnSelection.Gender:      value = buildingDemographic.avgGender;     break;
+                                        case ColumnSelection.Happiness:   value = buildingDemographic.avgHappiness;  break;
+                                        case ColumnSelection.Health:      value = buildingDemographic.avgHealth;     break;
+                                        case ColumnSelection.Location:    value = buildingDemographic.avgAtHome;     break;
+                                        case ColumnSelection.Residential: value = buildingDemographic.residential;   break;
+                                        case ColumnSelection.Student:     value = buildingDemographic.avgStudent;    break;
+                                        case ColumnSelection.Wealth:      value = buildingDemographic.avgWealth;     break;
+                                        case ColumnSelection.WellBeing:   value = buildingDemographic.avgWellbeing;  break;
+                                        default:
+                                            LogUtil.LogError($"Unhandled column selection [{columnSelection}].");
+                                            break;
+                                    }
+
+                                    // set cursor label text to the building's demographic value
+                                    cursorLabel.text = value.ToString(NumberFormat(columnSelection), LocaleManager.cultureInfo);
+                                    cursorLabelVisible = true;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                LogUtil.LogException(ex);
+                            }
+                            finally
+                            {
+                                // done getting data from final buffers
+                                // make sure thread is unlocked
+                                UnlockThread();
+                            }
+                        }
+                    }
+                }
+
+                // set cursor label visibility
+                cursorLabel.isVisible = cursorLabelVisible;
+
+                // update the panel only when it is triggered for update
                 if (_triggerUpdatePanel)
                 {
-                    // get row and column selections from config
-                    Configuration config = ConfigurationUtil<Configuration>.Load();
-                    RowSelection    rowSelection    = (RowSelection   )config.RowSelection;
-                    ColumnSelection columnSelection = (ColumnSelection)config.ColumnSelection;
-
                     // get selected row and column attributes
                     SelectionAttributes rowSelectionAttributes    = _rowSelectionAttributes   [rowSelection   ];
                     SelectionAttributes columnSelectionAttributes = _columnSelectionAttributes[columnSelection];
@@ -1607,7 +2059,7 @@ namespace PopulationDemographics
                     {
                         // set panel heights
                         height = _panelHeightNotAge;
-                        _dataPanel.height = selectedRowCount * TextHeight + HeightOfTotals;
+                        _dataPanel.height = selectedRowCount * TextHeight + HeightOfTotals + SpaceAfterTotalsSection + HeightOfLegend;
                         _dataRowsPanel.height = selectedRowCount * TextHeight;
 
                         // hide vertical scroll bar
@@ -1704,7 +2156,7 @@ namespace PopulationDemographics
                                     movingIn.total++;
                                 }
                                 // check if deceased
-                                else if (citizen.deceasesd)
+                                else if (citizen.deceased)
                                 {
                                     // increment data row deceased, total row deceased, deceased row for the column, and deceased row total
                                     rows[row].deceased++;
@@ -1722,6 +2174,83 @@ namespace PopulationDemographics
                                 }
                             }
                         }
+
+                        // initialize each min and max building value
+                        // min is set to the maximum possible value for the demographic
+                        // max is set to the minimum possible value for the demographic
+                        // add one to residential to make is look like it is 1-5 instead of 0-4
+                        _minCitizens    = 99999;    // guessing there will never be more than 99,999 citizens in one building
+                        _maxCitizens    = 0;
+                        _minAge         = MaxRealAge;
+                        _maxAge         = 0f;
+                        _minEducation   = (float)Citizen.Education.ThreeSchools;
+                        _maxEducation   = (float)Citizen.Education.Uneducated;
+                        _minUnemployed  = 100f;     // unemployment rate
+                        _maxUnemployed  = 0f;       // unemployment rate
+                        _minGender      = (float)Citizen.Gender.Female;
+                        _maxGender      = (float)Citizen.Gender.Male;
+                        _minHappiness   = (float)Citizen.Happiness.Suberb;
+                        _maxHappiness   = (float)Citizen.Happiness.Bad;
+                        _minHealth      = (float)Citizen.Health.ExcellentHealth;
+                        _maxHealth      = (float)Citizen.Health.VerySick;
+                        _minAtHome      = 100f;     // percent at home
+                        _maxAtHome      = 0f;       // percent at home
+                        _minResidential = ((int)ItemClass.Level.Level5) + 1;
+                        _maxResidential = ((int)ItemClass.Level.Level1) + 1;
+                        _minStudent     = (float)ItemClass.Level.Level3;
+                        _maxStudent     = (float)ItemClass.Level.Level1;
+                        _minWealth      = (float)Citizen.Wealth.High;
+                        _maxWealth      = (float)Citizen.Wealth.Low;
+                        _minWellBeing   = (float)Citizen.Wellbeing.VeryHappy;
+                        _maxWellBeing   = (float)Citizen.Wellbeing.VeryUnhappy;
+
+                        // do each building
+                        foreach (BuildingDemographic buildingDemographic in _finalBuildings)
+                        {
+                            // include building when selected district is Entire City OR selected district ID matches the building's district ID
+                            if (_selectedDistrictID == UIDistrictDropdown.DistrictIDEntireCity || _selectedDistrictID == buildingDemographic.districtID)
+                            {
+                                // update min/max only for buildings with at least 1 citizen
+                                if (buildingDemographic.citizenCount > 0)
+                                {
+                                    // update normal min and max values
+                                    _minCitizens    = Mathf.Min(_minCitizens,    buildingDemographic.citizenCount);
+                                    _maxCitizens    = Mathf.Max(_maxCitizens,    buildingDemographic.citizenCount);
+                                    _minAge         = Mathf.Min(_minAge,         buildingDemographic.avgAge);
+                                    _maxAge         = Mathf.Max(_maxAge,         buildingDemographic.avgAge);
+                                    _minEducation   = Mathf.Min(_minEducation,   buildingDemographic.avgEducation);
+                                    _maxEducation   = Mathf.Max(_maxEducation,   buildingDemographic.avgEducation);
+                                    _minGender      = Mathf.Min(_minGender,      buildingDemographic.avgGender);
+                                    _maxGender      = Mathf.Max(_maxGender,      buildingDemographic.avgGender);
+                                    _minHappiness   = Mathf.Min(_minHappiness,   buildingDemographic.avgHappiness);
+                                    _maxHappiness   = Mathf.Max(_maxHappiness,   buildingDemographic.avgHappiness);
+                                    _minHealth      = Mathf.Min(_minHealth,      buildingDemographic.avgHealth);
+                                    _maxHealth      = Mathf.Max(_maxHealth,      buildingDemographic.avgHealth);
+                                    _minAtHome      = Mathf.Min(_minAtHome,      buildingDemographic.avgAtHome);
+                                    _maxAtHome      = Mathf.Max(_maxAtHome,      buildingDemographic.avgAtHome);
+                                    _minResidential = Mathf.Min(_minResidential, buildingDemographic.residential);
+                                    _maxResidential = Mathf.Max(_maxResidential, buildingDemographic.residential);
+                                    _minWealth      = Mathf.Min(_minWealth,      buildingDemographic.avgWealth);
+                                    _maxWealth      = Mathf.Max(_maxWealth,      buildingDemographic.avgWealth);
+                                    _minWellBeing   = Mathf.Min(_minWellBeing,   buildingDemographic.avgWellbeing);
+                                    _maxWellBeing   = Mathf.Max(_maxWellBeing,   buildingDemographic.avgWellbeing);
+
+                                    // update min/max unemployed only if building has jobs eligible
+                                    if (buildingDemographic.jobEligibleCount > 0)
+                                    {
+                                        _minUnemployed = Mathf.Min(_minUnemployed, buildingDemographic.avgUnemployed);
+                                        _maxUnemployed = Mathf.Max(_maxUnemployed, buildingDemographic.avgUnemployed);
+                                    }
+
+                                    // update min/max student only if building has students
+                                    if (buildingDemographic.studentCount > 0)
+                                    {
+                                        _minStudent = Mathf.Min(_minStudent, buildingDemographic.avgStudent);
+                                        _maxStudent = Mathf.Max(_maxStudent, buildingDemographic.avgStudent);
+                                    }
+                                }
+                            }
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -1729,6 +2258,7 @@ namespace PopulationDemographics
                     }
                     finally
                     {
+                        // done getting data from final buffers
                         // make sure thread is unlocked
                         UnlockThread();
                     }
@@ -1755,6 +2285,46 @@ namespace PopulationDemographics
                     DisplayDataRow(_totalRow,    total,    countIsSelected, rowSelectionIsAge, selectedColumnCount, total   .total, movingIn.total, deceased.total, 0, Color.black);
                     DisplayDataRow(_movingInRow, movingIn, countIsSelected, rowSelectionIsAge, selectedColumnCount, movingIn.total, 0,              0,              0, Color.black);
                     DisplayDataRow(_deceasedRow, deceased, countIsSelected, rowSelectionIsAge, selectedColumnCount, deceased.total, 0,              0,              0, Color.black);
+
+                    // get low and high values to display based on column selection
+                    float lowValue = 0f;
+                    float highValue = 0f;
+                    switch ((ColumnSelection)config.ColumnSelection)
+                    {
+                        case ColumnSelection.None:        lowValue = _minCitizens;    highValue = _maxCitizens;    break;
+                        case ColumnSelection.AgeGroup:    lowValue = _minAge;         highValue = _maxAge;         break;
+                        case ColumnSelection.Education:   lowValue = _minEducation;   highValue = _maxEducation;   break;
+                        case ColumnSelection.Employment:  lowValue = _minUnemployed;  highValue = _maxUnemployed;  break;
+                        case ColumnSelection.Gender:      lowValue = _minGender;      highValue = _maxGender;      break;
+                        case ColumnSelection.Happiness:   lowValue = _minHappiness;   highValue = _maxHappiness;   break;
+                        case ColumnSelection.Health:      lowValue = _minHealth;      highValue = _maxHealth;      break;
+                        case ColumnSelection.Location:    lowValue = _minAtHome;      highValue = _maxAtHome;      break;
+                        case ColumnSelection.Residential: lowValue = _minResidential; highValue = _maxResidential; break;
+                        case ColumnSelection.Student:     lowValue = _minStudent;     highValue = _maxStudent;     break;
+                        case ColumnSelection.Wealth:      lowValue = _minWealth;      highValue = _maxWealth;      break;
+                        case ColumnSelection.WellBeing:   lowValue = _minWellBeing;   highValue = _maxWellBeing;   break;
+
+                        default:
+                            Debug.LogError($"Unhandled column selection [{(ColumnSelection)config.ColumnSelection}] while displaying low/high values.");
+                            break;
+                    }
+
+                    // if low value is more than high value, then swap low and high values
+                    // this can happen when there are no citizens (e.g. a new city)
+                    if (lowValue > highValue)
+                    {
+                        float tempValue = lowValue;
+                        lowValue = highValue;
+                        highValue = tempValue;
+                    }
+
+                    // display the low and high values on the legend
+                    string numberFormat = NumberFormat(columnSelection);
+                    _legendLowValue.text = lowValue.ToString(numberFormat, LocaleManager.cultureInfo);
+                    _legendHighValue.text = highValue.ToString(numberFormat, LocaleManager.cultureInfo);
+
+                    // update all buildings with this new data
+                    BuildingManager.instance.UpdateBuildingColors();
 
                     // wait for next trigger
                     _triggerUpdatePanel = false;
@@ -1839,6 +2409,128 @@ namespace PopulationDemographics
                 percent = 100f * value / total;
             }
             return percent.ToString(format, LocaleManager.cultureInfo);
+        }
+
+        /// <summary>
+        /// get the number format for building demographics
+        /// </summary>
+        private string NumberFormat(ColumnSelection columnSelection)
+        {
+            // display None (i.e. citizen count) and residential level as integers
+            if (columnSelection == ColumnSelection.None || columnSelection == ColumnSelection.Residential)
+            {
+                return "N0";
+            }
+
+            // display all others with 1 decimal place
+            return "N1";
+        }
+
+        /// <summary>
+        /// get building color based on selected column and building population demographics
+        /// </summary>
+        /// <returns>whether or not to do base processing</returns>
+        public bool GetBuildingColor(ushort buildingID, ref Building data, ref Color buildingColor)
+        {
+            // home building must be completed, not abandoned, and not collapsed
+            // logic adapted from ResidentialBuildingAI.GetColor
+            if ((data.m_flags & (Building.Flags.Completed | Building.Flags.Abandoned | Building.Flags.Collapsed)) == Building.Flags.Completed)
+            {
+                try
+                {
+                    // lock thread while working with final buffers
+                    LockThread();
+
+                    // color building when selected district is Entire City OR selected district ID matches the building's district ID
+                    BuildingDemographic buildingDemographic = _finalBuildings[buildingID];
+                    if (_selectedDistrictID == UIDistrictDropdown.DistrictIDEntireCity || _selectedDistrictID == buildingDemographic.districtID)
+                    {
+                        // check column selection
+                        Configuration config = ConfigurationUtil<Configuration>.Load();
+                        switch ((ColumnSelection)config.ColumnSelection)
+                        {
+                            // get building color according to building demographics
+                            case ColumnSelection.None:        buildingColor = GetBuildingColor(buildingDemographic.citizenCount,   _minCitizens,    _maxCitizens   ); return false;
+                            case ColumnSelection.AgeGroup:    buildingColor = GetBuildingColor(buildingDemographic.avgAge,         _minAge,         _maxAge        ); return false;
+                            case ColumnSelection.Education:   buildingColor = GetBuildingColor(buildingDemographic.avgEducation,   _minEducation,   _maxEducation  ); return false;
+                            case ColumnSelection.Gender:      buildingColor = GetBuildingColor(buildingDemographic.avgGender,      _minGender,      _maxGender     ); return false;
+                            case ColumnSelection.Happiness:   buildingColor = GetBuildingColor(buildingDemographic.avgHappiness,   _minHappiness,   _maxHappiness  ); return false;
+                            case ColumnSelection.Health:      buildingColor = GetBuildingColor(buildingDemographic.avgHealth,      _minHealth,      _maxHealth     ); return false;
+                            case ColumnSelection.Location:    buildingColor = GetBuildingColor(buildingDemographic.avgAtHome,      _minAtHome,      _maxAtHome     ); return false;
+                            case ColumnSelection.Residential: buildingColor = GetBuildingColor(buildingDemographic.residential,    _minResidential, _maxResidential); return false;
+                            case ColumnSelection.Wealth:      buildingColor = GetBuildingColor(buildingDemographic.avgWealth,      _minWealth,      _maxWealth     ); return false;
+                            case ColumnSelection.WellBeing:   buildingColor = GetBuildingColor(buildingDemographic.avgWellbeing,   _minWellBeing,   _maxWellBeing  ); return false;
+
+                            case ColumnSelection.Employment:
+                                if (buildingDemographic.jobEligibleCount > 0)
+                                {
+                                    // building has job eligible citizens, get unemployment color normally
+                                    buildingColor = GetBuildingColor(buildingDemographic.avgUnemployed, _minUnemployed, _maxUnemployed);
+                                }
+                                else
+                                {
+                                    // building has no job eligible citizens, use low color
+                                    buildingColor = _buildingColorLow;
+                                }
+                                return false;
+
+                            case ColumnSelection.Student:
+                                if (buildingDemographic.studentCount > 0)
+                                {
+                                    // building has students, get student color normally
+                                    buildingColor = GetBuildingColor(buildingDemographic.avgStudent, _minStudent, _maxStudent);
+                                }
+                                else
+                                {
+                                    // building has no students, use low color
+                                    buildingColor = _buildingColorLow;
+                                }
+                                return false;
+
+                            default:
+                                Debug.LogError($"Unhandled column selection [{(ColumnSelection)config.ColumnSelection}] while getting building color.");
+                                return true;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogUtil.LogException(ex);
+                    return true;
+                }
+                finally
+                {
+                    // make sure thread is unlocked
+                    UnlockThread();
+                }
+            }
+
+            // building does not meet any conditions above to get color, use neutral color
+            buildingColor = _neutralColor;
+            return false;
+        }
+
+        /// <summary>
+        /// get building color based on building demographics
+        /// </summary>
+        private static Color GetBuildingColor(float value, float minValue, float maxValue)
+        {
+            // if no citizens (i.e. min and max were never updated from initial values), use low color
+            if (minValue > maxValue)
+            {
+                return _buildingColorLow;
+            }
+
+            // if all citizens in all buildings have same value, use high color
+            // this logic prevents divide by zero in normal case below
+            if (minValue == maxValue)
+            {
+                return _buildingColorHigh;
+            }
+
+            // normal case, use proportional color with limit between 0 and 1
+            float proportion = Mathf.Clamp01((value - minValue) / (maxValue - minValue));
+            return Color.Lerp(_buildingColorLow, _buildingColorHigh, proportion);
         }
 
         #endregion
