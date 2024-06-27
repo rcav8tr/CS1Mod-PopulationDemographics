@@ -56,7 +56,7 @@ This mod is compatible with [url=https://steamcommunity.com/sharedfiles/filedeta
 This mod may or may not work correctly if another mod is enabled that alters the logic to get building color when the Population info view is displayed.
 
 [h1]Source Code[/h1]
-Available [url=https://github.com/rcav8tr/CS1-PopulationDemographics]here[/url].
+Available [url=https://github.com/rcav8tr/CS1Mod-PopulationDemographics]here[/url].
 Change notes [url=https://steamcommunity.com/sharedfiles/filedetails/changelog/2409471930]here[/url].
 
 [h1]Acknowledgments[/h1]
