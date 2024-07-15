@@ -77,18 +77,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Steam Deployment\Activation Button.jpg" />
+    <None Include="Steam Deployment\Count.jpg" />
+    <None Include="Steam Deployment\Discussion Row Column Selections.txt" />
+    <None Include="Steam Deployment\Percent.jpg" />
     <None Include="Steam Deployment\PreviewImage.png" />
     <None Include="Steam Deployment\Steam Description.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Steam Deployment\Count.jpg" />
-    <None Include="Steam Deployment\Percent.jpg" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Steam Deployment\Discussion Row Column Selections.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Steam Deployment\Activation Button.jpg" />
+    <None Include="LICENSE.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
